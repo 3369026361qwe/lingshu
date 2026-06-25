@@ -1,4 +1,4 @@
-[project]
+﻿[project]
 name = "lingshu"
 version = "2.0.0"
 description = "灵枢 LingShu — 基于LLM多智能体与图神经网络的A股量化投资系统"
@@ -66,6 +66,14 @@ gpu = [
     "torch-geometric>=2.6.0",
 ]
 
+[build-system]
+requires = ["setuptools>=64.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["tests*", "data*", "scripts*", "bushu*", "lingshulianghuasheji*", "alembic*"]
+namespaces = false
 [tool.pytest.ini_options]
 testpaths = [
     "tests/test_shujuku",
@@ -92,3 +100,5 @@ select = ["E", "F", "W", "I", "N", "UP", "B"]
 host = "0.0.0.0"
 port = 8000
 log-level = "info"
+
+
