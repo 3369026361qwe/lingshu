@@ -1,0 +1,19 @@
+/* 灵枢暗色金融主题 */
+:root {
+  --bg-primary: #0D1117; --bg-secondary: #161B22; --bg-tertiary: #21262D;
+  --text-primary: #E8EAED; --text-secondary: #9AA0A6; --text-muted: #6B7280;
+  --accent-gold: #D4AF37; --accent-green: #2ECC71; --accent-red: #FF475C;
+  --accent-blue: #4198FF; --accent-cyan: #00D4AA; --accent-orange: #FF8C42;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg-primary); color: var(--text-primary); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif; }
+.ant-card { background: var(--bg-secondary) !important; border-color: var(--bg-tertiary) !important; }
+.ant-card-head { color: var(--text-primary) !important; border-bottom-color: var(--bg-tertiary) !important; }
+.ant-card-head-title { color: var(--text-primary) !important; }
+.ant-table { background: transparent !important; color: var(--text-primary) !important; }
+.ant-table-thead > tr > th { background: var(--bg-tertiary) !important; color: var(--text-secondary) !important; border-bottom-color: var(--bg-tertiary) !important; }
+.ant-table-tbody > tr > td { border-bottom-color: var(--bg-tertiary) !important; color: var(--text-primary) !important; }
+.ant-table-tbody > tr:hover > td { background: var(--bg-tertiary) !important; }
+.ant-menu-dark { background: transparent !important; }
+.ant-menu-item-selected { background: rgba(212, 175, 55, 0.15) !important; }
+.ant-statistic-content { color: var(--text-primary) !important; }

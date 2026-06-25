@@ -1,0 +1,47 @@
+version: "3.8"
+services:
+  api:
+    build: { context: .., dockerfile: bushu/Dockerfile.api }
+    ports: ["8000:8000"]
+    environment:
+      - DATABASE_URL=postgresql://lingshu:lingshu@db:5432/lingshu
+      - REDIS_URL=redis://redis:6379/0
+      - LLM_BACKEND=mock
+    depends_on: [db, redis]
+    restart: unless-stopped
+    volumes: ["./data:/app/data"]
+
+  frontend:
+    build: { context: ../qianduan, dockerfile: ../bushu/Dockerfile.frontend }
+    ports: ["80:80"]
+    depends_on: [api]
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment: { POSTGRES_USER: lingshu, POSTGRES_PASSWORD: lingshu, POSTGRES_DB: lingshu }
+    ports: ["5432:5432"]
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports: ["9090:9090"]
+    volumes: ["./prometheus.yml:/etc/prometheus/prometheus.yml"]
+    command: ["--config.file=/etc/prometheus/prometheus.yml"]
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports: ["3000:3000"]
+    environment: { GF_SECURITY_ADMIN_PASSWORD: lingshu }
+    volumes: ["./grafana/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml", "./grafana/dashboards.json:/etc/grafana/provisioning/dashboards/lingshu.json"]
+    depends_on: [prometheus]
+    restart: unless-stopped
+
+volumes: { pgdata: }

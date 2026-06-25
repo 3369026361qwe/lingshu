@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+*.db
+
+# 环境
+.env
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Node
+node_modules/
+
+# 数据
+data/
+*.h5
+*.pkl
+
+# 测试
+.pytest_cache/
+htmlcov/
+.coverage

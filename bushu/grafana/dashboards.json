@@ -1,0 +1,15 @@
+{
+  "title": "灵枢 LingShu 监控",
+  "uid": "lingshu-v3",
+  "panels": [
+    {"title": "LLM 调用 QPS", "targets": [{"expr": "rate(lingshu_llm_call_total[5m])"}], "gridPos": {"x": 0, "y": 0, "w": 8, "h": 6}},
+    {"title": "Agent 分析延迟 P95", "targets": [{"expr": "histogram_quantile(0.95, rate(lingshu_agent_analysis_duration_seconds_bucket[5m]))"}], "gridPos": {"x": 8, "y": 0, "w": 8, "h": 6}},
+    {"title": "因子计算 QPS", "targets": [{"expr": "rate(lingshu_factor_compute_total[5m])"}], "gridPos": {"x": 16, "y": 0, "w": 8, "h": 6}},
+    {"title": "GNN 训练损失", "targets": [{"expr": "lingshu_gnn_train_loss"}, {"expr": "lingshu_gnn_val_loss"}], "gridPos": {"x": 0, "y": 6, "w": 12, "h": 8}},
+    {"title": "数据库操作延迟", "targets": [{"expr": "rate(lingshu_db_operation_latency_seconds_sum[5m]) / rate(lingshu_db_operation_latency_seconds_count[5m])"}], "gridPos": {"x": 12, "y": 6, "w": 12, "h": 8}},
+    {"title": "图构建耗时", "targets": [{"expr": "lingshu_graph_build_duration_seconds"}], "gridPos": {"x": 0, "y": 14, "w": 8, "h": 6}},
+    {"title": "缓存命中率", "targets": [{"expr": "rate(lingshu_data_cache_hits_total[5m]) / (rate(lingshu_data_cache_hits_total[5m]) + rate(lingshu_data_cache_misses_total[5m]))"}], "gridPos": {"x": 8, "y": 14, "w": 8, "h": 6}},
+    {"title": "Orchestrator 调度耗时", "targets": [{"expr": "rate(lingshu_orchestrator_duration_seconds_sum[5m]) / rate(lingshu_orchestrator_duration_seconds_count[5m])"}], "gridPos": {"x": 16, "y": 14, "w": 8, "h": 6}}
+  ],
+  "schemaVersion": 16, "version": 1
+}

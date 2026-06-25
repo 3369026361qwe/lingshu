@@ -1,0 +1,94 @@
+[project]
+name = "lingshu"
+version = "2.0.0"
+description = "灵枢 LingShu — 基于LLM多智能体与图神经网络的A股量化投资系统"
+requires-python = ">=3.11"
+
+dependencies = [
+    # --- Web Framework ---
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic>=2.10.0",
+
+    # --- Database ---
+    "sqlalchemy>=2.0.0",
+    "alembic>=1.14.0",
+    "redis>=5.2.0",
+
+    # --- Data Science ---
+    "numpy>=1.26.0",
+    "scipy>=1.14.0",
+    "pandas>=2.2.0",
+    "scikit-learn>=1.5.0",
+
+    # --- Technical Indicators ---
+    "TA-Lib>=0.5.0",
+
+    # --- Kalman Filter ---
+    "filterpy>=1.4.0",
+
+    # --- Data Sources ---
+    "akshare>=1.15.0",
+    "tushare>=1.4.0",
+
+    # --- NLP ---
+    "jieba>=0.42.0",
+    "transformers>=4.46.0",
+
+    # --- LLM ---
+    "langchain>=0.3.0",
+    "langchain-community>=0.3.0",
+    "openai>=1.55.0",
+
+    # --- GNN ---
+    "torch>=2.5.0",
+    "torch-geometric>=2.6.0",
+
+    # --- Monitoring ---
+    "prometheus-client>=0.21.0",
+
+    # --- Utilities ---
+    "httpx>=0.28.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "httpx>=0.28.0",
+    "ruff>=0.8.0",
+]
+
+gpu = [
+    "torch>=2.5.0+cu121",
+    "torch-geometric>=2.6.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests/test_shujuku",
+    "tests/test_shuju",
+    "tests/test_yinzi",
+    "tests/test_zhinengti",
+    "tests/test_tushenjing",
+    "tests/test_juece",
+    "tests/test_fengkong",
+    "tests/test_zhixing",
+    "tests/test_huice",
+    "tests/test_jiekou",
+]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B"]
+
+[tool.uvicorn]
+host = "0.0.0.0"
+port = 8000
+log-level = "info"

@@ -1,0 +1,53 @@
+# 灵枢量化系统 v3.0 — 统一配置文件
+# 用法: import yaml; config = yaml.safe_load(open('config.yaml'))
+
+data:
+  tushare_token: ${TUSHARE_TOKEN}
+  data_dir: data/
+
+factors:
+  enabled: [roe, roa, net_margin, gross_margin, pb, ps, pe,
+            momentum_3m, momentum_6m, momentum_12m1m, momentum_1m,
+            oc_20, cntp_20, corr_20, roc_5,
+            std_20, historical_vol, min_20, max_20, turn_20]
+  min_valid: 8
+
+model:
+  gnn:
+    features: 20
+    hidden_dim: 64
+    dropout: 0.3
+    epochs: 100
+    learning_rate: 0.005
+    forward_days: 20
+    loss: pairwise_ranking
+    margin: 0.02
+
+fusion:
+  weights:
+    factor: 0.20     # v3.1 optimized: was 0.50
+    gnn: 0.45        # v3.1 optimized: was 0.30
+    agent: 0.35      # v3.1 optimized: was 0.20
+
+backtest:
+  top_n: 40
+  rebalance_days: 40
+  initial_capital: 1000000
+  commission: 0.0003
+  slippage: 0.001
+  benchmark: hs800_equal_weight
+
+risk:
+  max_drawdown_pct: 0.15
+  single_stock_max_weight: 0.10
+  single_industry_max_weight: 0.30
+  var_confidence: 0.95
+  max_consecutive_losses: 5
+
+api:
+  host: 0.0.0.0
+  port: 8000
+
+logging:
+  level: INFO
+  file: logs/lingshu.log

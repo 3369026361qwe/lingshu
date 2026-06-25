@@ -1,0 +1,16 @@
+FROM python:3.11-slim
+WORKDIR /app
+COPY pyproject.toml .
+RUN pip install --no-cache-dir fastapi uvicorn[standard] pydantic sqlalchemy alembic redis prometheus-client numpy pandas && mkdir -p /app/data
+COPY shujuku/ ./shujuku/
+COPY shuju/ ./shuju/
+COPY yinzi/ ./yinzi/
+COPY zhinengti/ ./zhinengti/
+COPY tushenjing/ ./tushenjing/
+COPY juece/ ./juece/
+COPY fengkong/ ./fengkong/
+COPY zhixing/ ./zhixing/
+COPY huice/ ./huice/
+COPY jiekou/ ./jiekou/
+EXPOSE 8000
+CMD ["uvicorn", "jiekou.server:app", "--host", "0.0.0.0", "--port", "8000"]
