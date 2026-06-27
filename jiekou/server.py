@@ -7,9 +7,12 @@ from datetime import datetime, timezone, date
 from decimal import Decimal
 from statistics import mean
 
+from pathlib import Path
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 from jiekou.dependencies import get_repository
 from jiekou.routes.selection_routes import router as selection_router
@@ -49,7 +52,6 @@ app.include_router(gnn_router)
 app.include_router(agent_ws_router)
 app.include_router(risk_ws_router)
 
-# ── 市场数据缓存 ────────────────────────────────────────
 
 _market_cache: dict = {
     "latest_date": "",
@@ -293,6 +295,23 @@ def _ensure_daily_task():
 
 
 # ── 启动 ──────────────────────────────────────────────
+
+# ── 前端静态文件 ────────────────────────────────────
+
+_FRONTEND_DIST = Path(__file__).resolve().parent.parent / "qianduan" / "dist"
+
+
+@app.get("/{full_path:path}")
+async def serve_frontend(full_path: str):
+    """SPA 前端 — 必须在所有 API 路由之后注册。"""
+    if full_path.startswith("api/") or full_path.startswith("ws/"):
+        return JSONResponse({"error": "not found"}, 404)
+    if _FRONTEND_DIST.exists() and (fp := _FRONTEND_DIST / full_path).is_file() and "." in (fp.suffix or ""):
+        return FileResponse(fp)
+    if _FRONTEND_DIST.exists():
+        return HTMLResponse((_FRONTEND_DIST / "index.html").read_text(encoding="utf-8"))
+    return HTMLResponse("<h3>前端未构建 — cd qianduan && npm run build</h3>", status_code=503)
+
 
 if __name__ == "__main__":
     import uvicorn
