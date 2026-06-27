@@ -1,0 +1,55 @@
+# 灵枢量化系统 — 行尾符规范
+# 所有文本文件统一使用 LF，避免 Windows CRLF 警告
+
+# 源码文件
+*.py        text eol=lf
+*.ts        text eol=lf
+*.tsx       text eol=lf
+*.js        text eol=lf
+*.jsx       text eol=lf
+*.css       text eol=lf
+*.html      text eol=lf
+*.json      text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf
+*.toml      text eol=lf
+*.md        text eol=lf
+*.txt       text eol=lf
+*.sql       text eol=lf
+*.sh        text eol=lf
+*.cfg       text eol=lf
+*.ini       text eol=lf
+*.env       text eol=lf
+
+# 批处理/脚本 (Windows)
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+*.ps1       text eol=crlf
+
+# 二进制/锁定文件
+*.db        binary
+*.sqlite    binary
+*.sqlite3   binary
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.svg       binary
+*.ttf       binary
+*.woff      binary
+*.woff2     binary
+*.eot       binary
+*.mp4       binary
+*.pptx      binary
+*.xlsx      binary
+package-lock.json binary
+poetry.lock binary
+
+# 数据文件
+*.csv       text eol=lf
+*.tsv       text eol=lf
+*.parquet   binary
+*.h5        binary
+*.pkl       binary
+*.npy       binary
