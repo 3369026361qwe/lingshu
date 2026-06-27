@@ -226,11 +226,23 @@ class DBBacktestRunner:
         t0 = _time.perf_counter()
 
         with SessionContext() as s:
-            # 1. 加载价格数据
+            # 1. 加载价格数据（带日期过滤，防止全表加载 OOM）
             prices = defaultdict(dict)
+            date_filter = ""
+            params = {}
+            if start_date and end_date:
+                date_filter = " WHERE trade_date BETWEEN :start AND :end"
+                params = {"start": start_date, "end": end_date}
+            elif start_date:
+                date_filter = " WHERE trade_date >= :start"
+                params = {"start": start_date}
+            elif end_date:
+                date_filter = " WHERE trade_date <= :end"
+                params = {"end": end_date}
+
             pr_rows = s.execute(text(
-                'SELECT code, trade_date, close FROM daily_bar ORDER BY code, trade_date'
-            )).fetchall()
+                f"SELECT code, trade_date, close FROM daily_bar{date_filter} ORDER BY code, trade_date"
+            ), params).fetchall()
             for code, td, close in pr_rows:
                 try:
                     prices[str(td)][code] = float(str(close))
@@ -238,28 +250,23 @@ class DBBacktestRunner:
                     pass
 
             all_dates = sorted(prices.keys())
-            if start_date:
-                all_dates = [d for d in all_dates if d >= start_date]
-            if end_date:
-                all_dates = [d for d in all_dates if d <= end_date]
 
-            # 2. 加载信号
+            # 2. 加载信号（带日期过滤）
             signals_data = defaultdict(dict)
             table = 'fusion_score' if signal_source == 'fusion_score' else 'factor_value'
             if signal_source == 'fusion_score':
                 fs_rows = s.execute(text(
-                    f'SELECT trade_date, code, composite_score, rank FROM {table} ORDER BY trade_date, rank'
-                )).fetchall()
+                    f"SELECT trade_date, code, composite_score, rank FROM {table}{date_filter} ORDER BY trade_date, rank"
+                ), params).fetchall()
                 for td, code, sc, rk in fs_rows:
                     try:
                         signals_data[str(td)][code] = float(sc)
                     except Exception:
                         pass
             else:
-                # factor_value 没有 rank 列 — 按 z_score DESC + ROW_NUMBER 计算
                 fs_rows = s.execute(text(
-                    f'SELECT trade_date, code, z_score FROM {table} ORDER BY trade_date, z_score DESC'
-                )).fetchall()
+                    f"SELECT trade_date, code, z_score FROM {table}{date_filter} ORDER BY trade_date, z_score DESC"
+                ), params).fetchall()
                 for td, code, sc in fs_rows:
                     try:
                         signals_data[str(td)][code] = float(sc)

@@ -62,47 +62,55 @@ with SessionContext() as s:
 
 # ── Step 1: 逐日计算 Rank IC ──────────────────────────
 
-print('\n[1/2] 计算逐日 Rank IC...')
+print('\n[1/2] 批量加载 → 计算逐日 Rank IC...')
+t0 = time.time()
+
+# 一次查询：加载整个区间所有因子值 + 价格数据
+with SessionContext() as s:
+    all_fv = s.execute(text(
+        "SELECT trade_date, code, factor_name, raw_value FROM factor_value "
+        "WHERE trade_date BETWEEN :start AND :end AND factor_name IN :fnames"
+    ), {"start": dates[0], "end": dates[-1], "fnames": tuple(factors)}).fetchall()
+
+    all_prices = s.execute(text(
+        "SELECT a.trade_date, a.code, "
+        "(CAST(a.close AS REAL) - CAST(b.close AS REAL)) / CAST(b.close AS REAL) as fwd_ret "
+        "FROM daily_bar a JOIN daily_bar b ON a.code = b.code "
+        "WHERE a.trade_date BETWEEN :start AND :end"
+    ), {"start": dates[0], "end": dates[-1]}).fetchall()
+
+print(f'  加载 {len(all_fv):,} 因子值 + {len(all_prices):,} 价格行 ({time.time()-t0:.1f}s)')
+
+# 组织内存结构
+fv_by_date = defaultdict(lambda: defaultdict(dict))
+for td, code, fn, rv in all_fv:
+    if fn in factors_set:
+        fv_by_date[str(td)][fn][code] = float(str(rv))
+
+ret_by_date = defaultdict(dict)
+for td, code, ret in all_prices:
+    if ret is not None:
+        ret_by_date[str(td)][code] = ret
+
+sorted_dates_all = sorted(set(str(d) for d in dates))
+next_map = {sorted_dates_all[i]: sorted_dates_all[i+1] for i in range(len(sorted_dates_all)-1)}
+
 ic_records = []
 skipped = 0
 total = len(dates)
-t0 = time.time()
 
 for di, trade_date in enumerate(dates):
-    # 找下一个交易日
-    next_date = None
-    for d in sorted(all_bar_dates):
-        if d > trade_date:
-            next_date = d
-            break
+    td_str = str(trade_date)
+    next_date = next_map.get(td_str)
     if next_date is None:
         skipped += 1
         continue
 
-    with SessionContext() as s:
-        # 查询当日因子值
-        fv_rows = s.execute(text(
-            "SELECT code, factor_name, raw_value FROM factor_value WHERE trade_date = :d"
-        ), {'d': trade_date}).fetchall()
-
-        # 查询次日收益
-        price_rows = s.execute(text(
-            "SELECT a.code, (CAST(a.close AS REAL) - CAST(b.close AS REAL)) / CAST(b.close AS REAL) as fwd_ret "
-            "FROM daily_bar a JOIN daily_bar b ON a.code = b.code "
-            "WHERE a.trade_date = :nd AND b.trade_date = :d"
-        ), {'nd': next_date, 'd': trade_date}).fetchall()
-
-    if not fv_rows or not price_rows:
+    fv_dict = fv_by_date.get(td_str, {})
+    returns = ret_by_date.get(next_date, {})
+    if not fv_dict or not returns:
         skipped += 1
         continue
-
-    # 构建 {code: fwd_ret}
-    returns = {r[0]: r[1] for r in price_rows if r[1] is not None}
-
-    # 按因子分组计算 IC
-    fv_dict = defaultdict(dict)
-    for code, fn, rv in fv_rows:
-        fv_dict[fn][code] = float(str(rv))
 
     for fn, fv_map in fv_dict.items():
         codes = [c for c in fv_map if c in returns]

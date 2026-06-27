@@ -166,12 +166,13 @@ def main():
         'stock_codes': stock_codes, 'edge_index': edge_index.cpu(),
         'model_type': 'GAT', 'gat_heads': GAT_HEADS, 'k_neighbors': K_NEIGHBORS,
     }, model_path)
-    json.dump({
-        'features': TOP_FACTORS, 'hidden_dim': HIDDEN_DIM, 'dropout': DROPOUT,
-        'n_stocks': n_stocks, 'n_train': n_train, 'n_total': len(dates_list),
-        'loss': 'pairwise_ranking', 'model': 'GAT', 'heads': GAT_HEADS,
-        'k_neighbors': K_NEIGHBORS, 'n_edges': len(edges),
-    }, open(BASE / 'gnn_config.json', 'w'), indent=2)
+    with open(BASE / 'gnn_config.json', 'w') as f:
+        json.dump({
+            'features': TOP_FACTORS, 'hidden_dim': HIDDEN_DIM, 'dropout': DROPOUT,
+            'n_stocks': n_stocks, 'n_train': n_train, 'n_total': len(dates_list),
+            'loss': 'pairwise_ranking', 'model': 'GAT', 'heads': GAT_HEADS,
+            'k_neighbors': K_NEIGHBORS, 'n_edges': len(edges),
+        }, f, indent=2)
     print(f'  Saved: {model_path} ({model_path.stat().st_size / 1024:.0f}KB)')
 
     # 6 ── 推理 + 评估 ──
@@ -189,7 +190,8 @@ def main():
 
     import json as _json
     pred_path = BASE / 'gnn_predictions.json'
-    _json.dump(all_preds, open(pred_path, 'w'))
+    with open(pred_path, 'w') as f:
+        _json.dump(all_preds, f)
     print(f'  Saved: {pred_path} ({pred_path.stat().st_size / 1024 / 1024:.0f}MB, {len(all_preds):,} entries)')
 
     # Top-K precision

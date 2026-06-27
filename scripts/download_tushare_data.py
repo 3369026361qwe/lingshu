@@ -94,38 +94,46 @@ print(f'  Tushare 返回: {len(df_stocks)} 只')
 df_stocks = df_stocks[df_stocks['ts_code'].str.contains('.SH|.SZ')]
 print(f'  沪深两市: {len(df_stocks)} 只')
 
-with SessionContext() as s:
-    s.execute(text('BEGIN'))
-    count_si, count_ind = 0, 0
-    for _, row in df_stocks.iterrows():
-        code = row['ts_code']
-        exchange = 'SH' if '.SH' in code else 'SZ'
-        name = str(row.get('name', '') or '')
-        list_date = row.get('list_date', '')
-        if list_date and str(list_date) != 'nan':
-            ld = date(int(str(list_date)[:4]), int(str(list_date)[4:6]), int(str(list_date)[6:8]))
-        else:
-            ld = None
+_BATCH = 500
+si_batch, ind_batch = [], []
 
-        # StockInfo
-        s.execute(text(
-            "INSERT INTO stock_info (code, name, exchange, listing_date, is_active, updated_at) "
-            "VALUES (:c, :n, :x, :d, 1, datetime('now')) "
-            "ON CONFLICT(code) DO UPDATE SET name=:n, is_active=1, updated_at=datetime('now')"
-        ), {'c': code, 'n': name, 'x': exchange, 'd': ld})
-        count_si += 1
+for _, row in df_stocks.iterrows():
+    code = row["ts_code"]
+    exchange = "SH" if ".SH" in code else "SZ"
+    name = str(row.get("name", "") or "")
+    list_date = row.get("list_date", "")
+    if list_date and str(list_date) != "nan":
+        ld = date(int(str(list_date)[:4]), int(str(list_date)[4:6]), int(str(list_date)[6:8]))
+    else:
+        ld = None
+    si_batch.append({"c": code, "n": name, "x": exchange, "d": ld})
+    raw_ind = str(row.get("industry", "") or "")
+    sw1 = TS_TO_SW.get(raw_ind, raw_ind if raw_ind else "综合")
+    if sw1:
+        ind_batch.append({"c": code, "sw": sw1})
 
-        # IndustryClassification
-        raw_ind = str(row.get('industry', '') or '')
-        sw1 = TS_TO_SW.get(raw_ind, raw_ind if raw_ind else '综合')
-        if sw1:
+for i in range(0, len(si_batch), _BATCH):
+    chunk = si_batch[i:i + _BATCH]
+    with SessionContext() as s:
+        for b in chunk:
+            s.execute(text(
+                "INSERT INTO stock_info (code, name, exchange, listing_date, is_active, updated_at) "
+                "VALUES (:c, :n, :x, :d, 1, datetime("now")) "
+                "ON CONFLICT(code) DO UPDATE SET name=:n, is_active=1, updated_at=datetime("now")"
+            ), b)
+        s.commit()
+
+for i in range(0, len(ind_batch), _BATCH):
+    chunk = ind_batch[i:i + _BATCH]
+    with SessionContext() as s:
+        for b in chunk:
             s.execute(text(
                 "INSERT INTO industry_classification (code, sw_level1, effective_date, source, updated_at) "
-                "VALUES (:c, :sw, date('now'), 'Tushare', datetime('now'))"
-            ), {'c': code, 'sw': sw1})
-            count_ind += 1
+                "VALUES (:c, :sw, date("now"), "Tushare", datetime("now"))"
+            ), b)
+        s.commit()
 
-    s.commit()
+print(f"  StockInfo: {len(si_batch)} | Industry: {len(ind_batch)}")
 
     result_si = s.execute(text('SELECT COUNT(*) FROM stock_info')).scalar()
     result_ind = s.execute(text('SELECT COUNT(*) FROM industry_classification')).scalar()
