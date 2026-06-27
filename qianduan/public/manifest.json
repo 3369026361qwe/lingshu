@@ -1,0 +1,13 @@
+{
+  "name": "灵枢 LingShu - 量化投资系统",
+  "short_name": "灵枢",
+  "description": "基于LLM多智能体与图神经网络的A股量化投资系统",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0D1117",
+  "theme_color": "#D4AF37",
+  "orientation": "landscape-primary",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

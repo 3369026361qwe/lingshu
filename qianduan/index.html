@@ -1,1 +1,22 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>灵枢 LingShu - 量化投资系统</title><link rel="icon" href="/favicon.svg"/></head><body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="theme-color" content="#D4AF37"/>
+  <meta name="description" content="灵枢 LingShu - 基于LLM多智能体与图神经网络的A股量化投资系统"/>
+  <title>灵枢 LingShu</title>
+  <link rel="icon" href="/favicon.svg"/>
+  <link rel="manifest" href="/manifest.json"/>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+  <script>
+    // 注册 Service Worker（生产模式）
+    if ('serviceWorker' in navigator && !window.location.hostname.includes('localhost')) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+  </script>
+</body>
+</html>
