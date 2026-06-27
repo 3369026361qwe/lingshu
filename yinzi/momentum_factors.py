@@ -11,7 +11,14 @@ from yinzi.factor_base import FactorBase, FactorCategory, FactorResult
 
 
 class _MomentumBase(FactorBase):
-    """动量因子基类。"""
+    """动量因子基类。
+
+    direction=1 表示因子原始方向为动量延续（涨→涨，跌→跌）。
+    但在 FactorFusion 的 DEFAULT_WEIGHTS 中全部设为 dir=-1（反转策略），
+    依据为 A 股 2018-2025 年 Rank IC 检验结果：短周期反转效应显著（IC 均值 -0.03~-0.06）。
+    如需切换为趋势跟踪策略，将 FactorFusion 中的 dir 改为 +1 并重新运行
+    factor_validation.py 验证。
+    """
     category = FactorCategory.MOMENTUM
     direction = 1
     _lookback_days: int = 21

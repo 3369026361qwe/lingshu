@@ -25,7 +25,6 @@ from math import sqrt, isnan
 from statistics import mean, stdev
 import numpy as np
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from dotenv import load_dotenv
 load_dotenv(Path('E:/28721/lingshu/.env'))

@@ -10,7 +10,6 @@ import sys, os, time, argparse
 from pathlib import Path
 from datetime import date, timedelta
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 try: sys.stdout.reconfigure(encoding='utf-8')
 except: pass
 

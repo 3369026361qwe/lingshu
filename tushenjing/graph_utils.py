@@ -129,6 +129,123 @@ class GraphUtils:
         D_inv_sqrt = np.diag(d_inv_sqrt)
         return D_inv_sqrt @ adj @ D_inv_sqrt
 
+    # ── 排序损失 ──────────────────────────────────────
+
+    @staticmethod
+    def ranking_loss(preds, labels, margin: float = 0.02, max_pairs: int = 500):
+        """成对排序损失 (Pairwise Ranking Loss)。
+
+        对随机采样的配对 (i, j)，若 label_i > label_j 但 pred_i < pred_j，
+        施加 margin-based hinge loss。用于 GNN 模型训练中的股票排序优化。
+
+        Args:
+            preds: 预测分数 tensor [N]
+            labels: 真实标签 tensor [N]
+            margin: 排序间隔阈值
+            max_pairs: 每批最大配对数
+
+        Returns:
+            排序损失值 (torch scalar)
+        """
+        try:
+            import torch
+            n = len(preds)
+            if n < 2:
+                return torch.tensor(0.0, device=preds.device)
+            idx = torch.randperm(n, device=preds.device)[:max_pairs * 2]
+            if len(idx) < 2:
+                return torch.tensor(0.0, device=preds.device)
+            h = len(idx) // 2
+            i_idx = idx[:h]
+            j_idx = idx[h:2 * h]
+            ld = labels[i_idx] - labels[j_idx]
+            pp = ld > 0
+            if pp.sum() == 0:
+                return torch.tensor(0.0, device=preds.device)
+            return torch.clamp(margin - (preds[i_idx][pp] - preds[j_idx][pp]), min=0).mean()
+        except ImportError:
+            return 0.0
+
+    # ── k-NN 图构建 ────────────────────────────────────
+
+    @staticmethod
+    def build_knn_graph(
+        stock_codes: list[str],
+        factor_by_date: dict[str, dict[str, dict[str, float]]],
+        feature_names: list[str],
+        industry_map: dict[str, str],
+        k_neighbors: int = 10,
+        n_dates: int = 200,
+    ) -> list[tuple[int, int]]:
+        """构建稀疏 k-NN 相关性图 + 行业边。
+
+        基于因子特征向量的相关性距离选择每个节点的 K 个最近邻居，
+        并添加最多 5 条同行业边。用于 GNN 模型训练。
+
+        Args:
+            stock_codes: 股票代码列表
+            factor_by_date: {date: {code: {factor: value}}}
+            feature_names: 使用的因子名列表
+            industry_map: {code: industry_name}
+            k_neighbors: 每个节点的最近邻居数
+            n_dates: 用于图构建的日期数（取前 N 天）
+
+        Returns:
+            边列表 [(src_idx, dst_idx), ...]
+        """
+        import numpy as np
+        from collections import defaultdict
+
+        n_stocks = len(stock_codes)
+        stock_feat_matrix = np.zeros((n_stocks, len(feature_names)), dtype=np.float32)
+        count_matrix = np.zeros(n_stocks, dtype=np.int32)
+
+        dates = sorted(factor_by_date.keys())[:n_dates]
+        for mdate in dates:
+            fv = factor_by_date[mdate]
+            for i, code in enumerate(stock_codes):
+                if code in fv:
+                    for j, fn in enumerate(feature_names):
+                        v = fv[code].get(fn)
+                        if v is not None and not (hasattr(v, 'isnan') and v.isnan()) and abs(v) < 1e8:
+                            stock_feat_matrix[i, j] += float(v)
+                            count_matrix[i] += 1
+
+        for i in range(n_stocks):
+            if count_matrix[i] > 0:
+                stock_feat_matrix[i] /= count_matrix[i]
+
+        mu = stock_feat_matrix.mean(axis=0)
+        sg = stock_feat_matrix.std(axis=0) + 1e-12
+        feat_norm = (stock_feat_matrix - mu) / sg
+
+        edges = []
+        for i in range(n_stocks):
+            diff = feat_norm - feat_norm[i]
+            dist = np.sqrt((diff ** 2).sum(axis=1))
+            dist[i] = 1e9
+            neighbors = np.argpartition(dist, k_neighbors)[:k_neighbors]
+            for j in neighbors:
+                if j != i:
+                    edges.append((i, int(j)))
+                    edges.append((int(j), i))
+
+        # 行业边（最多 5 条/股）
+        ind_groups = defaultdict(list)
+        for i, code in enumerate(stock_codes):
+            ind = industry_map.get(code, '其他')
+            ind_groups[ind].append(i)
+        rng = np.random.RandomState(42)
+        for members in ind_groups.values():
+            for i in members:
+                others = [m for m in members if m != i]
+                if len(others) > 5:
+                    others = list(rng.choice(others, 5, replace=False))
+                for j in others:
+                    edges.append((i, j))
+
+        return list(set(edges))
+
     # ── 训练/测试划分 ──────────────────────────────────
 
     @staticmethod

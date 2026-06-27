@@ -12,7 +12,6 @@ from collections import defaultdict
 from decimal import Decimal
 from math import isnan, isinf, sqrt
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 try: sys.stdout.reconfigure(encoding='utf-8')
 except: pass
 

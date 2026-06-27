@@ -51,6 +51,9 @@ from shujuku.models.fengkong_models import (  # noqa: E402, F401
     RiskLog,
     VaRRecord,
 )
+from shujuku.models.juece_models import (  # noqa: E402, F401
+    FusionScore,
+)
 
 __all__ = [
     "Base",
@@ -75,4 +78,6 @@ __all__ = [
     "CircuitBreakerEvent",
     "RiskLog",
     "VaRRecord",
+    # juece
+    "FusionScore",
 ]

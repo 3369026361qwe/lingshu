@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Row, Col, Card, Table, Tag, Spin, Empty } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined, RobotOutlined, ReloadOutlined } from '@ant-design/icons';
 import ReactECharts from 'echarts-for-react';
@@ -11,33 +11,20 @@ import useWebSocket from '../hooks/useWebSocket';
 import StatCard from '../components/StatCard';
 import ScoreBar from '../components/ScoreBar';
 import RiskBadge from '../components/RiskBadge';
+import { useMarketStore } from '../stores/marketStore';
+import { useRiskStore } from '../stores/riskStore';
+import { useSelectionStore } from '../stores/selectionStore';
 import type { SelectionResponse, AgentReport, RiskStatus, EquityResponse, FactorWeightsResponse } from '../types/api';
-
-// ── Mock 兜底数据 ────────────────────────────────────
-// ── 权益曲线 (真实数据 → Mock 兜底) ──
-const FALLBACK_EQUITY = {
-  dates: ['05/18','05/20','05/22','05/24','05/26','05/28','05/30','06/02','06/04','06/06','06/08','06/10','06/12','06/14'],
-  values: [0,1.8,3.2,2.9,5.1,7.3,6.8,9.5,8.2,10.1,12.4,11.0,14.2,15.8],
-  bench: [0,0.9,1.5,2.1,1.8,2.8,3.2,4.1,3.8,5.0,5.8,5.5,6.8,7.5],
-};
-
-const MOCK_PICKS = [
-  { code: '300750', score: 94.2, rank: 1 },
-  { code: '002594', score: 91.8, rank: 2 },
-  { code: '600519', score: 89.3, rank: 3 },
-  { code: '300274', score: 87.6, rank: 4 },
-  { code: '000858', score: 85.2, rank: 5 },
-];
-
-const MOCK_AGENTS: AgentReport[] = [
-  { agent_id: 'macro', timestamp: '', signal: 'bullish', confidence: '0.78', reasoning: 'PMI连续3月扩张，建议超配制造业' },
-  { agent_id: 'sector', timestamp: '', signal: 'bullish', confidence: '0.82', reasoning: '新能源板块资金持续流入，光伏和锂电是当前最强赛道' },
-  { agent_id: 'risk', timestamp: '', signal: 'bearish', confidence: '0.85', reasoning: '北向资金连续3日净流出，建议总仓位降至80%' },
-];
+import { FALLBACK_EQUITY, MOCK_PICKS, MOCK_AGENTS, FALLBACK_WEIGHTS, FALLBACK_MARKET } from '../utils/mockData';
 
 // ── 组件 ────────────────────────────────────────────
 
 const DashboardPage: React.FC = () => {
+  // 全局状态（跨页面共享）
+  const setMarket = useMarketStore((s) => s.setMarket);
+  const setRisk = useRiskStore((s) => s.setRisk);
+  const setSelection = useSelectionStore((s) => s.setSelection);
+
   // WebSocket
   const { data: wsMarket } = useWebSocket('/ws/market');
   const { data: wsRisk } = useWebSocket('/ws/risk');
@@ -64,6 +51,20 @@ const DashboardPage: React.FC = () => {
 
   // 定时刷新 (30s)
   useInterval(() => { refetchSel(); refetchAgents(); refetchRisk(); }, POLL_INTERVAL.agents);
+
+  // ── 同步到全局 store ────────────────────────────
+
+  useEffect(() => {
+    if (wsMarket?.data) setMarket(wsMarket.data as unknown as Record<string, unknown>);
+  }, [wsMarket, setMarket]);
+
+  useEffect(() => {
+    if (wsRisk) setRisk(wsRisk as unknown as Record<string, unknown>);
+  }, [wsRisk, setRisk]);
+
+  useEffect(() => {
+    if (selection) setSelection(selection);
+  }, [selection, setSelection]);
 
   // ── 数据合并 (真实 → Mock 兜底) ──────────────
 
@@ -102,16 +103,12 @@ const DashboardPage: React.FC = () => {
   // 因子权重
   const factors = useMemo(() => {
     if (factorData?.weights?.length) return factorData.weights;
-    return [
-      { name: 'GNN', weight: 0.22 }, { name: 'Agent', weight: 0.25 },
-      { name: 'ROE', weight: 0.18 }, { name: 'PE', weight: 0.15 },
-      { name: '动量', weight: 0.12 }, { name: '情绪', weight: 0.08 },
-    ];
+    return FALLBACK_WEIGHTS;
   }, [factorData]);
 
-  const marketData = (wsMarket?.data ?? {}) as Record<string, unknown>;
-  const marketIndex = (marketData.index as string) ?? '3,856.21';
-  const marketChange = (marketData.change as string) ?? '+0.82%';
+  const marketData = (wsMarket?.data ?? FALLBACK_MARKET) as Record<string, unknown>;
+  const marketIndex = (marketData.index as string) ?? FALLBACK_MARKET.index;
+  const marketChange = (marketData.change as string) ?? FALLBACK_MARKET.change;
   const isMarketUp = !marketChange.startsWith('-');
 
   // ── 渲染 ──────────────────────────────────────────

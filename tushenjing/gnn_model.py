@@ -134,11 +134,14 @@ def create_model(
     elif _PYG_AVAILABLE and model_type == "gat":
         return PyGGAT(in_dim, hidden_dim, out_dim, kwargs.get("heads", 4), kwargs.get("dropout", 0.5))
 
-    # NumPy 降级
+    # NumPy 降级 (完整参数对齐 PyG 版本)
+    dropout = kwargs.get("dropout", 0.5)
     if model_type == "gcn":
-        return NumPyGCN(in_dim, hidden_dim, out_dim)
+        return NumPyGCN(in_dim, hidden_dim, out_dim, dropout=dropout)
     elif model_type == "gat":
-        return NumPyGAT(in_dim, hidden_dim, out_dim)
+        return NumPyGAT(in_dim, hidden_dim, out_dim, heads=kwargs.get("heads", 1), dropout=dropout)
+    elif model_type == "hgt":
+        raise ValueError("HGT not supported in NumPy fallback — use GCN or GAT")
     else:
         raise ValueError(f"Unknown model type: {model_type}")
 
@@ -182,10 +185,10 @@ class GCNModel:
 
 
 class GATModel:
-    """GAT 模型包装器。"""
+    """GAT 模型包装器 — 同时支持 PyG 和 NumPy 降级。"""
 
-    def __init__(self, in_dim, hidden_dim=64, out_dim=1, heads=4):
-        self._model = create_model("gat", in_dim, hidden_dim, out_dim, heads=heads)
+    def __init__(self, in_dim, hidden_dim=64, out_dim=1, heads=4, dropout=0.5):
+        self._model = create_model("gat", in_dim, hidden_dim, out_dim, heads=heads, dropout=dropout)
         self._is_pyg = _PYG_AVAILABLE and isinstance(self._model, PyGGAT) if _PYG_AVAILABLE else False
 
     def __call__(self, x, adj):

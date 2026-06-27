@@ -11,8 +11,12 @@
   5. Min-Max 归一化 — 全市场 [0, 1] 得分
 
 Usage:
+    # 默认权重 (DEFAULT_WEIGHTS 归一化)
     fusion = FactorFusion()
-    fusion.load_weights_from_db()  # or set_weights_manual()
+    # 数据库 IC 权重 (DB 依赖隔离在 from_db() 工厂方法中)
+    fusion = FactorFusion.from_db()
+    # 自定义权重注入
+    fusion = FactorFusion(weights={'roe': {'dir': +1, 'weight': 0.15}, ...})
     scores = fusion.compute(factor_values_by_code, industry_map)
 """
 import logging
@@ -39,7 +43,10 @@ class FactorFusion:
         'net_margin':           {'dir': +1, 'weight': 0.06},
         'gross_margin':         {'dir': +1, 'weight': 0.03},
         'cashflow_to_revenue':  {'dir': +1, 'weight': 0.02},
-        # 动量因子 (IC负=反转, 高|IR|)
+        # 动量因子 (dir=-1=反转策略, 依据 A 股 2018-2025 Rank IC 检验结果:
+        #   IC 均值 -0.03~-0.06, 即过去涨→未来跌; 高|IR| 表明反转效应稳定。
+        #   对应 momentum_factors.py 中 direction=+1 (原始方向), 此处 dir=-1 反转。
+        #   如需切换为趋势跟踪: 改 dir=+1 后重新运行 factor_validation.py)
         'momentum_3m':          {'dir': -1, 'weight': 0.08},
         'momentum_6m':          {'dir': -1, 'weight': 0.06},
         'momentum_12m1m':       {'dir': -1, 'weight': 0.05},
@@ -70,31 +77,42 @@ class FactorFusion:
         'hl_spread_20':         {'dir': -1, 'weight': 0.01},
         'vwap_20':              {'dir': -1, 'weight': 0.01},
         'kurt_20':              {'dir': +1, 'weight': 0.01},
-        # 低效因子（极小权重）
-        'money_flow':           {'dir': +1, 'weight': 0.005},
-        'downside_vol':         {'dir': -1, 'weight': 0.005},
-        'var_95':               {'dir': -1, 'weight': 0.005},
-        'vstd_20':              {'dir': -1, 'weight': 0.005},
-        'vma_5':                {'dir': +1, 'weight': 0.005},
-        'rank_20':              {'dir': +1, 'weight': 0.005},
         # DB-computed factors (from compute_factors_from_db.py)
         'vol_3m':               {'dir': -1, 'weight': 0.015},
         'rsi_14':               {'dir': +1, 'weight': 0.02},
         'ma5_gap':              {'dir': -1, 'weight': 0.01},
     }
 
-    def __init__(self, min_valid_factors: int = 8, use_db_weights: bool = True):
+    # 低优先级因子 — IC 不稳定或覆盖率低，仅在 from_db() 显式加载时启用。
+    # 这些因子在默认融合中不参与计算（collective 贡献 < 3%），降低认知负担。
+    LOW_PRIORITY_WEIGHTS: dict[str, dict] = {
+        'money_flow':           {'dir': +1, 'weight': 0.005},
+        'downside_vol':         {'dir': -1, 'weight': 0.005},
+        'var_95':               {'dir': -1, 'weight': 0.005},
+        'vstd_20':              {'dir': -1, 'weight': 0.005},
+        'vma_5':                {'dir': +1, 'weight': 0.005},
+        'rank_20':              {'dir': +1, 'weight': 0.005},
+    }
+
+    def __init__(self, min_valid_factors: int = 8, weights: dict[str, dict] | None = None):
+        """初始化 FactorFusion。
+
+        Args:
+            min_valid_factors: 最少有效因子数（低于此值返回兜底分数）。
+            weights: 外部注入的权重 {factor_name: {dir: ±1, weight: float}}。
+                     若为 None 则使用 DEFAULT_WEIGHTS 归一化。
+                     数据库权重通过 from_db() 类方法加载后传入。
+        """
         self._min_valid = min_valid_factors
-        # Start with normalized defaults
-        raw = dict(self.DEFAULT_WEIGHTS)
-        total = sum(cfg['weight'] for cfg in raw.values())
-        self._weights: dict[str, dict] = {
-            fn: {'dir': cfg['dir'], 'weight': cfg['weight'] / total}
-            for fn, cfg in raw.items()
-        }
-        # Try DB weights first
-        if use_db_weights:
-            self.load_weights_from_db()
+        if weights is not None:
+            self._weights = dict(weights)
+        else:
+            raw = dict(self.DEFAULT_WEIGHTS)
+            total = sum(cfg['weight'] for cfg in raw.values())
+            self._weights: dict[str, dict] = {
+                fn: {'dir': cfg['dir'], 'weight': cfg['weight'] / total}
+                for fn, cfg in raw.items()
+            }
 
     # ── 权重管理 ────────────────────────────────────────────
 
@@ -102,45 +120,51 @@ class FactorFusion:
         """手动设置因子权重。{factor_name: {dir: ±1, weight: float}}"""
         self._weights = dict(weights)
 
-    def load_weights_from_db(self) -> dict[str, dict]:
-        """从 factor_ic_record 表加载 IC/IR，自动计算权重。"""
+    @classmethod
+    def from_db(cls, min_valid_factors: int = 8) -> "FactorFusion":
+        """从 factor_ic_record 表加载 IC/IR 权重并创建 FactorFusion 实例。
+
+        数据库依赖完全隔离在此工厂方法中，__init__ 保持纯计算逻辑。
+        向后兼容旧的 FactorFusion(use_db_weights=True) 调用：
+            ff = FactorFusion.from_db()
+        """
+        from sqlalchemy import text
+
         try:
             with SessionContext() as s:
                 rows = s.execute(text(
-                    'SELECT factor_name, AVG(ic) as mean_ic, COUNT(*) as n '
-                    'FROM factor_ic_record GROUP BY factor_name HAVING n >= 10'
+                    "SELECT factor_name, AVG(ic) as mean_ic, COUNT(*) as n "
+                    "FROM factor_ic_record GROUP BY factor_name HAVING n >= 10"
                 )).fetchall()
-
-            if not rows:
-                _logger.warning("No IC records found, using default weights")
-                return dict(self._weights)
-
-            # Compute IR-based weights
-            factor_stats = {}
-            for fn, mic, n in rows:
-                mic_f = float(mic)
-                factor_stats[fn] = {
-                    'dir': +1 if mic_f > 0 else -1,
-                    'mean_ic': mic_f,
-                    'abs_ic': abs(mic_f),
-                }
-
-            # Normalize weights by absolute IC
-            total_abs = sum(s['abs_ic'] for s in factor_stats.values())
-            if total_abs > 0:
-                new_weights = {}
-                for fn, stats in factor_stats.items():
-                    new_weights[fn] = {
-                        'dir': stats['dir'],
-                        'weight': stats['abs_ic'] / total_abs,
-                    }
-                self._weights = new_weights
-                _logger.info("Loaded %d factor weights from DB (total weight=1.0)", len(new_weights))
-
-            return dict(self._weights)
         except Exception as e:
-            _logger.warning("Failed to load IC weights: %s, using defaults", e)
-            return dict(self._weights)
+            _logger.warning("Failed to query factor_ic_record: %s, using defaults", e)
+            return cls(min_valid_factors=min_valid_factors)
+
+        if not rows:
+            _logger.warning("No IC records found, using default weights")
+            return cls(min_valid_factors=min_valid_factors)
+
+        factor_stats = {}
+        for fn, mic, n in rows:
+            mic_f = float(mic)
+            factor_stats[fn] = {
+                'dir': +1 if mic_f > 0 else -1,
+                'mean_ic': mic_f,
+                'abs_ic': abs(mic_f),
+            }
+
+        total_abs = sum(s['abs_ic'] for s in factor_stats.values())
+        if total_abs <= 0:
+            return cls(min_valid_factors=min_valid_factors)
+
+        new_weights = {}
+        for fn, stats in factor_stats.items():
+            new_weights[fn] = {
+                'dir': stats['dir'],
+                'weight': stats['abs_ic'] / total_abs,
+            }
+        _logger.info("Loaded %d factor IC weights from DB", len(new_weights))
+        return cls(min_valid_factors=min_valid_factors, weights=new_weights)
 
     @property
     def active_factors(self) -> list[str]:

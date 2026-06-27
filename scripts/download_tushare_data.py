@@ -14,7 +14,6 @@ from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 # 确保项目根目录在 path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 # Windows 控制台 UTF-8 编码
 try:

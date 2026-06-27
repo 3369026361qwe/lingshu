@@ -1,18 +1,12 @@
 """
 因子质量全面评估脚本。
-从 factor_value 表读取全量因子数据，进行多维度质量评估。
 
-评估维度:
-  1. Rank IC — Spearman秩相关系数（因子值 vs 未来收益）
-  2. Pearson IC — Pearson线性相关系数
-  3. IR (Information Ratio) — IC均值/IC标准差
-  4. 分层回测 — 10分组Top-Bottom Spread
-  5. NDCG@30 — 排序质量指标
-  6. 因子相关性矩阵 — 识别冗余因子
-  7. 滚动IC稳定性 — 60期滚动IC均值/标准差
-  8. 因子分级 — A/B/C/D 综合评分
+核心计算方法已模块化:
+  - yinzi.factor_validator.FactorValidator — IC/IR/分层回测/NDCG/滚动稳定性
+  - IC 衰减分析 → FactorValidator.compute_ic_decay()
+  - 滚动 IC 稳定性 → FactorValidator.ic_stability()
 
-输出: IC/IR排名表 + 相关性矩阵 + 分层回测结果 + 综合报告
+本脚本提供因子相关性矩阵 + A/B/C/D 分级 + DB 数据加载 + 综合报告。
 """
 import csv, json, time, os, sys
 from pathlib import Path

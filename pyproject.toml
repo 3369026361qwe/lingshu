@@ -1,4 +1,4 @@
-﻿[project]
+[project]
 name = "lingshu"
 version = "2.0.0"
 description = "灵枢 LingShu — 基于LLM多智能体与图神经网络的A股量化投资系统"
@@ -62,13 +62,13 @@ dev = [
 ]
 
 gpu = [
-    "torch>=2.5.0+cu121",
+    "torch>=2.5.0",
     "torch-geometric>=2.6.0",
 ]
 
 [build-system]
 requires = ["setuptools>=64.0", "wheel"]
-build-backend = "setuptools.backends._legacy:_Backend"
+build-backend = "setuptools.build_meta:__legacy__"
 
 [tool.setuptools.packages.find]
 where = ["."]

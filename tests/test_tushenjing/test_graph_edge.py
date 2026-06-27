@@ -85,9 +85,11 @@ class TestGATAttention:
 
     def test_gat_weight_snapshot(self):
         from tushenjing.gnn_numpy import NumPyGAT
-        gat = NumPyGAT(in_dim=3, hidden_dim=4, out_dim=1)
+        gat = NumPyGAT(in_dim=3, hidden_dim=4, out_dim=1, heads=1)
         snap = gat.get_weights_snapshot()
-        assert "a_left" in snap
+        # 多头模式下键名包含 head 索引
+        assert "a_left_0" in snap
+        assert "a_right_0" in snap
         x = np.random.randn(10, 3).astype(np.float32)
         adj = np.eye(10, dtype=np.float32) * 0.1
         out1 = gat.forward(x, adj)

@@ -1,15 +1,12 @@
 """
 因子多维验证脚本。
-在前序 IC/IR 评估基础上，进行严格的多维度因子有效性验证。
 
-验证维度:
-  1. 多周期 IC 衰减 — 5/10/20/40/60 日前瞻 Rank IC
-  2. 市场 regime 条件 IC — 牛市/熊市/震荡市分别计算
-  3. 因子自相关 — 相邻期因子值秩相关系数 (换手率代理)
-  4. 单调性检验 — 10分组收益是否严格单调
-  5. 综合通过/淘汰判定 — 各维度加权评分
+核心计算方法已模块化至 yinzi.factor_validator:
+  - FactorValidator.compute_ic_decay() — 多周期 IC 衰减
+  - FactorValidator.compute_factor_autocorr() — 因子自相关
+  - FactorValidator.ic_stability() — 滚动 IC 稳定性
 
-输出: 每个因子的多维检验卡 + 综合通过/淘汰报告
+本脚本提供 CSV 数据加载 + 市场 regime 条件 IC + 综合评分报告。
 """
 import csv, json, time, os, sys
 from pathlib import Path

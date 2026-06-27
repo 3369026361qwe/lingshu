@@ -1,7 +1,18 @@
 FROM python:3.11-slim
 WORKDIR /app
-COPY pyproject.toml .
-RUN pip install --no-cache-dir fastapi uvicorn[standard] pydantic sqlalchemy alembic redis prometheus-client numpy pandas && mkdir -p /app/data
+
+# Install system deps
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY bushu/requirements-ci.txt .
+RUN pip install --no-cache-dir -r requirements-ci.txt
+
+# Install PyTorch + PyG (CPU-only for Docker)
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir torch-geometric
+
+# Copy all source modules
 COPY shujuku/ ./shujuku/
 COPY shuju/ ./shuju/
 COPY yinzi/ ./yinzi/
@@ -12,5 +23,10 @@ COPY fengkong/ ./fengkong/
 COPY zhixing/ ./zhixing/
 COPY huice/ ./huice/
 COPY jiekou/ ./jiekou/
+
+# Install project in editable mode
+COPY pyproject.toml .
+RUN pip install --no-cache-dir -e .
+
 EXPOSE 8000
 CMD ["uvicorn", "jiekou.server:app", "--host", "0.0.0.0", "--port", "8000"]

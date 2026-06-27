@@ -1,0 +1,33 @@
+# CI 轻量依赖 — 仅包含测试和核心计算所需，不含 GPU/LLM/数据源
+# pip install -r bushu/requirements-ci.txt
+
+# Web framework (for jiekou API tests)
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pydantic>=2.10.0
+
+# Database
+sqlalchemy>=2.0.0
+alembic>=1.14.0
+
+# Data science (core only)
+numpy>=1.26.0
+scipy>=1.14.0
+pandas>=2.2.0
+scikit-learn>=1.5.0
+
+# Filtering
+filterpy>=1.4.0
+
+# Monitoring
+prometheus-client>=0.21.0
+
+# Dev
+pytest>=8.3.0
+pytest-asyncio>=0.24.0
+pytest-cov>=6.0.0
+httpx>=0.28.0
+ruff>=0.8.0
+
+# Utilities
+python-dotenv>=1.0.0
