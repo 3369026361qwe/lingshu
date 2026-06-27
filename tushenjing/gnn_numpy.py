@@ -259,8 +259,9 @@ def _map_pyg_to_numpy(state_dict: dict, model_type: str, heads: int) -> dict:
                 snapshot['b2'] = state_dict['conv2.bias'].cpu().numpy().astype(np.float32)
 
         elif model_type == 'GAT':
-            # Per-head mapping
-            hd = state_dict.get('conv1.lin_src.weight', None)
+            # Per-head mapping — PyG 2.x 用 conv1.lin.weight (不是 konv1.lin_src)
+            lin_key = 'conv1.lin_src.weight' if 'conv1.lin_src.weight' in state_dict else 'conv1.lin.weight'
+            hd = state_dict.get(lin_key)
             if hd is not None:
                 hd = hd.cpu().numpy()
                 # GATConv stores [heads * hidden, in_dim]
@@ -275,13 +276,17 @@ def _map_pyg_to_numpy(state_dict: dict, model_type: str, heads: int) -> dict:
                         ak_data = state_dict[ak].cpu().numpy()
                         if ak_data.ndim == 1:
                             snapshot[key] = ak_data.reshape(-1, 1).astype(np.float32)
+                        elif ak_data.ndim == 3:
+                            # PyG >=2.5: [num_edge_types=1, heads, hidden]
+                            snapshot[key] = ak_data[0, k, :].reshape(-1, 1).astype(np.float32)
                         else:
                             per_h = ak_data.shape[0] // heads
                             snapshot[key] = ak_data[k * per_h:(k + 1) * per_h].reshape(-1, 1).astype(np.float32)
 
-            # Output projection
-            if 'conv2.lin_src.weight' in state_dict:
-                snapshot['W_out'] = state_dict['conv2.lin_src.weight'].cpu().numpy().T.astype(np.float32)
+            # Output projection — PyG 2.x 用 conv2.lin.weight (不是 conv2.lin_src)
+            w_out_key = 'conv2.lin_src.weight' if 'conv2.lin_src.weight' in state_dict else 'conv2.lin.weight'
+            if w_out_key in state_dict:
+                snapshot['W_out'] = state_dict[w_out_key].cpu().numpy().T.astype(np.float32)
 
     except Exception:
         return {}

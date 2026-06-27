@@ -18,7 +18,9 @@ venv/
 node_modules/
 
 # 数据
-data/
+data/*
+!data/gnn_model.pt
+!data/gnn_config.json
 *.h5
 *.pkl
 
