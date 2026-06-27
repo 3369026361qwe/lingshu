@@ -246,15 +246,25 @@ class DBBacktestRunner:
             # 2. 加载信号
             signals_data = defaultdict(dict)
             table = 'fusion_score' if signal_source == 'fusion_score' else 'factor_value'
-            col = 'composite_score' if signal_source == 'fusion_score' else 'z_score'
-            fs_rows = s.execute(text(
-                f'SELECT trade_date, code, {col}, rank FROM {table} ORDER BY trade_date, rank'
-            )).fetchall()
-            for td, code, sc, rk in fs_rows:
-                try:
-                    signals_data[str(td)][code] = float(sc)
-                except Exception:
-                    pass
+            if signal_source == 'fusion_score':
+                fs_rows = s.execute(text(
+                    f'SELECT trade_date, code, composite_score, rank FROM {table} ORDER BY trade_date, rank'
+                )).fetchall()
+                for td, code, sc, rk in fs_rows:
+                    try:
+                        signals_data[str(td)][code] = float(sc)
+                    except Exception:
+                        pass
+            else:
+                # factor_value 没有 rank 列 — 按 z_score DESC + ROW_NUMBER 计算
+                fs_rows = s.execute(text(
+                    f'SELECT trade_date, code, z_score FROM {table} ORDER BY trade_date, z_score DESC'
+                )).fetchall()
+                for td, code, sc in fs_rows:
+                    try:
+                        signals_data[str(td)][code] = float(sc)
+                    except Exception:
+                        pass
 
         # 3. 运行回测循环
         cash = initial_capital
