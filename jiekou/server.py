@@ -1,6 +1,7 @@
 """FastAPI 入口 — 应用创建 + 路由注册 + 启动。"""
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone, date
 from decimal import Decimal
@@ -23,13 +24,18 @@ _logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def _lifespan(_app: FastAPI):
-    """应用生命周期：启动时预载市场缓存，关闭时清理。"""
+    """应用生命周期：启动时预载市场缓存 + 日终流水线，关闭时清理。"""
     _ensure_market_task()
+    _ensure_daily_task()
     yield
 
 
+from jiekou.middleware import APIKeyMiddleware, RateLimitMiddleware
+
 app = FastAPI(title="灵枢 LingShu API", version="3.0.0", lifespan=_lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(RateLimitMiddleware, max_requests=120, window_seconds=60)
+app.add_middleware(APIKeyMiddleware)
 
 # 注册 REST 路由
 app.include_router(selection_router)
@@ -242,6 +248,48 @@ async def ws_market(websocket: WebSocket):
             })
     except WebSocketDisconnect:
         _ws_clients.remove(websocket)
+
+
+# ── 日终调度器 ────────────────────────────────────────
+
+_daily_task: asyncio.Task | None = None
+_DAILY_RUN_HOUR = 15  # 15:00 收盘后
+_DAILY_RUN_MINUTE = 30
+_DAILY_ENABLED = os.getenv("LINGSHU_DAILY_AUTO", "0") == "1"
+
+
+async def _daily_pipeline_loop():
+    """日终自动流水线（需 LINGSHU_DAILY_AUTO=1 启用）。"""
+    if not _DAILY_ENABLED:
+        return
+    while True:
+        now = datetime.now(timezone.utc)
+        # 北京时间 = UTC+8
+        bj_hour = (now.hour + 8) % 24
+        bj_minute = now.minute
+        # 计算距离下一个 15:30 的秒数
+        target_minutes = _DAILY_RUN_HOUR * 60 + _DAILY_RUN_MINUTE
+        current_minutes = bj_hour * 60 + bj_minute
+        wait_minutes = (target_minutes - current_minutes) % (24 * 60)
+        if wait_minutes == 0:
+            wait_minutes = 24 * 60  # 刚好到点，等一天
+        wait_seconds = wait_minutes * 60
+        _logger.info("Daily pipeline next run in %d min (BJ %02d:%02d)", wait_minutes, _DAILY_RUN_HOUR, _DAILY_RUN_MINUTE)
+        await asyncio.sleep(wait_seconds)
+        # 执行日终流水线
+        try:
+            _logger.info("Starting daily pipeline...")
+            from scripts.run_daily_pipeline import main as run_pipeline
+            run_pipeline()
+            _logger.info("Daily pipeline completed")
+        except Exception as exc:
+            _logger.error("Daily pipeline failed: %s", exc)
+
+
+def _ensure_daily_task():
+    global _daily_task
+    if _DAILY_ENABLED and (_daily_task is None or _daily_task.done()):
+        _daily_task = asyncio.ensure_future(_daily_pipeline_loop())
 
 
 # ── 启动 ──────────────────────────────────────────────
