@@ -122,10 +122,12 @@ export interface EquityResponse {
 export interface FactorWeight {
   name: string;
   weight: number;
+  source: 'kalman' | 'synthetic' | 'mock';
 }
 
 export interface FactorWeightsResponse {
   weights: FactorWeight[];
+  source: 'live' | 'mock';
 }
 
 // ── WebSocket ───────────────────────────────────

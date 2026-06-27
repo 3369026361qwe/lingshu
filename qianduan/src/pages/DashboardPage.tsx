@@ -282,14 +282,25 @@ const DashboardPage: React.FC = () => {
 
       {/* ── 因子权重 ── */}
       <Col span={24}>
-        <Card title="⚖️ 因子权重" className="card-dark">
+        <Card
+          title="⚖️ 因子权重"
+          extra={<span className="text-muted">{factorData?.source === 'live' ? '📡 实时' : '📋 Mock'}</span>}
+          className="card-dark"
+        >
           <Row gutter={[16, 8]}>
-            {factors.map(f => (
-              <Col span={8} key={f.name}>
-                <ScoreBar label={f.name} value={f.weight} color={f.name === 'GNN' || f.name === 'Agent' ? '#D4AF37' : '#4198FF'} maxWidth={0.25} />
-              </Col>
-            ))}
+            {factors.map(f => {
+              const barColor = f.source === 'synthetic' ? '#D4AF37' : f.source === 'kalman' ? '#4198FF' : '#6B7280';
+              const sourceTag = f.source === 'synthetic' ? ' 🤖' : f.source === 'kalman' ? '' : ' *';
+              return (
+                <Col span={8} key={f.name}>
+                  <ScoreBar label={f.name + sourceTag} value={f.weight} color={barColor} maxWidth={0.25} />
+                </Col>
+              );
+            })}
           </Row>
+          <div className="text-muted" style={{ marginTop: 8 }}>
+            🤖 GNN/Agent = 模型合成权重 | 其他 = 卡尔曼滤波 | * = Mock 兜底
+          </div>
         </Card>
       </Col>
     </Row>

@@ -40,12 +40,12 @@ export const MOCK_AGENTS: AgentReport[] = [
 // ── 因子权重 ─────────────────────────────────────────
 
 export const FALLBACK_WEIGHTS = [
-  { name: 'GNN', weight: 0.22 },
-  { name: 'Agent', weight: 0.25 },
-  { name: 'ROE', weight: 0.18 },
-  { name: 'PE', weight: 0.15 },
-  { name: '动量', weight: 0.12 },
-  { name: '情绪', weight: 0.08 },
+  { name: 'GNN', weight: 0.22, source: 'mock' as const },
+  { name: 'Agent', weight: 0.25, source: 'mock' as const },
+  { name: 'ROE', weight: 0.18, source: 'mock' as const },
+  { name: 'PE', weight: 0.15, source: 'mock' as const },
+  { name: '动量', weight: 0.12, source: 'mock' as const },
+  { name: '情绪', weight: 0.08, source: 'mock' as const },
 ];
 
 // ── 市场概览（三指数） ───────────────────────────────
