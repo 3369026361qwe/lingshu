@@ -1,7 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { Layout, Menu, Spin } from 'antd';
-import { DashboardOutlined, RobotOutlined, StockOutlined, AlertOutlined, ExperimentOutlined } from '@ant-design/icons';
+import { DashboardOutlined, RobotOutlined, StockOutlined, AlertOutlined, ExperimentOutlined, DollarOutlined } from '@ant-design/icons';
 import ErrorBoundary from './components/ErrorBoundary';
 
 // 路由级懒加载 — 首屏只加载 Dashboard，其他页面按需加载
@@ -10,6 +10,7 @@ const SelectionPage = lazy(() => import('./pages/SelectionPage'));
 const AgentPage     = lazy(() => import('./pages/AgentPage'));
 const RiskPage      = lazy(() => import('./pages/RiskPage'));
 const BacktestPage  = lazy(() => import('./pages/BacktestPage'));
+const TradingPage  = lazy(() => import('./pages/TradingPage'));
 
 /** 懒加载页面的 Suspense 包装器 */
 const LazyPage: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -29,6 +30,7 @@ const menuItems = [
   { key: '/selection', icon: <StockOutlined />, label: <Link to="/selection">选股</Link> },
   { key: '/agents', icon: <RobotOutlined />, label: <Link to="/agents">智能体</Link> },
   { key: '/risk', icon: <AlertOutlined />, label: <Link to="/risk">风控</Link> },
+  { key: '/trading', icon: <DollarOutlined />, label: <Link to="/trading">交易</Link> },
   { key: '/backtest', icon: <ExperimentOutlined />, label: <Link to="/backtest">回测</Link> },
 ];
 
@@ -53,6 +55,7 @@ const App: React.FC = () => {
             <Route path="/selection" element={<ErrorBoundary><LazyPage><SelectionPage /></LazyPage></ErrorBoundary>} />
             <Route path="/agents" element={<ErrorBoundary><LazyPage><AgentPage /></LazyPage></ErrorBoundary>} />
             <Route path="/risk" element={<ErrorBoundary><LazyPage><RiskPage /></LazyPage></ErrorBoundary>} />
+            <Route path="/trading" element={<ErrorBoundary><LazyPage><TradingPage /></LazyPage></ErrorBoundary>} />
             <Route path="/backtest" element={<ErrorBoundary><LazyPage><BacktestPage /></LazyPage></ErrorBoundary>} />
           </Routes>
         </Content>

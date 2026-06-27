@@ -21,6 +21,7 @@ from jiekou.routes.portfolio_routes import router as portfolio_router
 from jiekou.routes.risk_routes import router as risk_router, ws_router as risk_ws_router
 from jiekou.routes.huice_routes import router as huice_router
 from jiekou.routes.gnn_routes import router as gnn_router
+from jiekou.routes.trade_routes import router as trade_router
 
 _logger = logging.getLogger(__name__)
 
@@ -47,6 +48,7 @@ app.include_router(portfolio_router)
 app.include_router(risk_router)
 app.include_router(huice_router)
 app.include_router(gnn_router)
+app.include_router(trade_router)
 
 # 注册 WebSocket 路由（无 /api 前缀）
 app.include_router(agent_ws_router)

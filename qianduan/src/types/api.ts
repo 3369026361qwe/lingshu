@@ -162,6 +162,36 @@ export interface MarketData {
   updated_at: string;
 }
 
+// ── 交易 ───────────────────────────────────────
+
+export interface TradeItem {
+  code: string;
+  action: 'BUY' | 'SELL';
+  weight: number;
+  delta: number;
+  amount: number;
+  reason: string;
+}
+
+export interface TradePipeline {
+  date: string;
+  timestamp: string;
+  capital: number;
+  stocks: { code: string; score: number; rank: number }[];
+  portfolio: { code: string; weight: number }[];
+  risk: { level: string; score: number; blocked: boolean; advice: string };
+  trades: { buys: TradeItem[]; sells: TradeItem[]; buy_count: number; sell_count: number; net_cash_flow: number };
+}
+
+export interface TradeOrder {
+  code: string;
+  direction: string;
+  amount: number;
+  price: number;
+  status: string;
+  time: string;
+}
+
 // ── GNN 图 ──────────────────────────────────────
 
 export interface GNNNode {
