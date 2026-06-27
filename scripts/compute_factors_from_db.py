@@ -168,12 +168,12 @@ for di, trade_date in enumerate(new_dates):
 
     with SessionContext() as s:
         # 获取该日期所有股票的日线数据（近 130 天回溯用于动量因子）
-        rows = s.execute(text(f"""
+        rows = s.execute(text("""
             SELECT code, close, volume, turnover_rate
             FROM daily_bar
-            WHERE trade_date <= '{trade_date}'
+            WHERE trade_date <= :d
             ORDER BY code, trade_date
-        """)).fetchall()
+        """), {"d": str(trade_date)}).fetchall()
 
     # 组织数据: {code: {'close': [...], 'volume': [...], 'turnover': [...]}}
     stock_data = defaultdict(lambda: {'close': [], 'volume': [], 'turnover': []})

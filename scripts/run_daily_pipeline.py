@@ -93,9 +93,11 @@ else:
 
     with SessionContext() as s:
         fv_rows = s.execute(text(
-            f"SELECT code, factor_name, raw_value FROM factor_value WHERE trade_date = '{latest_fv}'"
-        )).fetchall()
-        price_rows = s.execute(text(f"SELECT code, close FROM daily_bar WHERE trade_date = '{latest_fv}'")).fetchall()
+            "SELECT code, factor_name, raw_value FROM factor_value WHERE trade_date = :d"
+        ), {"d": str(latest_fv)}).fetchall()
+        price_rows = s.execute(text(
+            "SELECT code, close FROM daily_bar WHERE trade_date = :d"
+        ), {"d": str(latest_fv)}).fetchall()
 
     if fv_rows:
         fv = defaultdict(dict)
@@ -154,7 +156,7 @@ else:
     # Load factor features for latest date
     with SessionContext() as s:
         fv_rows = s.execute(text(
-            f"SELECT code, factor_name, raw_value FROM factor_value WHERE trade_date = '{latest_fv}'"
+            "SELECT code, factor_name, raw_value FROM factor_value WHERE trade_date = :d", {"d": str(latest_fv)}
         )).fetchall()
 
     stock_codes = checkpoint['stock_codes']
@@ -182,7 +184,9 @@ print('\n[Step 4/8] Three-way fusion...')
 t0 = time.time()
 
 with SessionContext() as s:
-    fusion_rows = s.execute(text(f"SELECT code, composite_score FROM fusion_score WHERE trade_date = '{latest_fv}'")).fetchall()
+    fusion_rows = s.execute(text(
+        "SELECT code, composite_score FROM fusion_score WHERE trade_date = :d"
+    ), {"d": str(latest_fv)}).fetchall()
 
 factor_scores = {r[0]: float(r[1]) for r in fusion_rows}
 

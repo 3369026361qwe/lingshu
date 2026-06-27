@@ -114,7 +114,7 @@ def load_gnn_checkpoint(model_path: str, device: str = 'cpu') -> dict:
     if not Path(model_path).exists():
         return {}
 
-    ckpt = torch.load(model_path, map_location='cpu', weights_only=False)
+    ckpt = torch.load(model_path, map_location='cpu', weights_only=True)
     model_type = ckpt.get('model_type', 'GCN')
     in_dim = len(ckpt['features'])
     hidden = ckpt.get('hidden_dim', 64)

@@ -190,7 +190,7 @@ def load_pyg_checkpoint_to_numpy(checkpoint_path: str) -> dict:
 
     try:
         import torch
-        ckpt = torch.load(checkpoint_path, map_location='cpu', weights_only=False)
+        ckpt = torch.load(checkpoint_path, map_location='cpu', weights_only=True)
     except (ImportError, Exception):
         return {}
 

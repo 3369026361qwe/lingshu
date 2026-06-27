@@ -43,7 +43,8 @@ async def run_backtest(req: BacktestRequest):
         "signal_generator": SimpleSignal(),
         "executor": SimpleExec(),
     }
-    report = engine.run(config)
+    import asyncio
+    report = await asyncio.to_thread(engine.run, config)
     return {
         "experiment_id": report["experiment_id"],
         "metrics": report["metrics"],

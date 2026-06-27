@@ -54,7 +54,7 @@ async def get_gnn_graph(top_n: int = Query(default=50, ge=10, le=200)):
             # 尝试从 .pt 文件加载边
             pt_path = _MODEL_DIR / "gnn_model.pt"
             if pt_path.exists():
-                ckpt = torch.load(str(pt_path), map_location="cpu", weights_only=False)
+                ckpt = torch.load(str(pt_path), map_location="cpu", weights_only=True)
                 ei = ckpt.get("edge_index", None)
                 stock_codes = ckpt.get("stock_codes", [])
                 if ei is not None and stock_codes:

@@ -35,7 +35,7 @@ for td,c,sc in fs: factor_scores[str(td)][c] = float(sc)
 
 # 2. Load GNN
 print('[2/4] Loading GNN...'); t0 = time.time()
-ckpt = torch.load(BASE/'gnn_model.pt', map_location='cpu', weights_only=False)
+ckpt = torch.load(BASE/'gnn_model.pt', map_location='cpu', weights_only=True)
 mt = ckpt.get('model_type','GCN')
 in_dim = len(ckpt['features']); hd = ckpt['hidden_dim']; dp = ckpt['dropout']
 stock_codes = ckpt['stock_codes']; edge_index = ckpt['edge_index'].to(DEVICE)

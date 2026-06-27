@@ -109,7 +109,7 @@ class TestNDCG:
 
 class TestLambdaRank:
     def test_loss_computation(self):
-        from tushenjing.lambda_rank import LambdaRankLoss
+        from juece.lambda_rank import LambdaRankLoss
         lr = LambdaRankLoss(k=5)
         y_pred = __import__('numpy').array([0.5, 0.3, 0.8, 0.1, 0.9])
         y_true = __import__('numpy').array([0.6, 0.2, 0.7, 0.1, 0.95])
@@ -117,7 +117,7 @@ class TestLambdaRank:
         assert 0 <= loss <= 1
 
     def test_gradient_shape(self):
-        from tushenjing.lambda_rank import LambdaRankLoss
+        from juece.lambda_rank import LambdaRankLoss
         lr = LambdaRankLoss(k=5)
         y_pred = __import__('numpy').array([0.5, 0.3, 0.8, 0.1, 0.9, 0.2, 0.7, 0.4])
         y_true = __import__('numpy').array([0.6, 0.2, 0.7, 0.1, 0.95, 0.3, 0.8, 0.5])
@@ -125,7 +125,7 @@ class TestLambdaRank:
         assert grad.shape == (8,)
 
     def test_perfect_order_zero_loss(self):
-        from tushenjing.lambda_rank import LambdaRankLoss
+        from juece.lambda_rank import LambdaRankLoss
         import numpy as np
         lr = LambdaRankLoss(k=3)
         y = np.array([0.9, 0.7, 0.5, 0.3])

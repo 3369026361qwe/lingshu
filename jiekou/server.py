@@ -284,7 +284,7 @@ async def _daily_pipeline_loop():
         try:
             _logger.info("Starting daily pipeline...")
             from scripts.run_daily_pipeline import main as run_pipeline
-            run_pipeline()
+            await asyncio.to_thread(run_pipeline)
             _logger.info("Daily pipeline completed")
         except Exception as exc:
             _logger.error("Daily pipeline failed: %s", exc)
@@ -305,12 +305,15 @@ _FRONTEND_DIST = Path(__file__).resolve().parent.parent / "qianduan" / "dist"
 
 @app.get("/{full_path:path}")
 async def serve_frontend(full_path: str):
-    """SPA 前端 — 必须在所有 API 路由之后注册。"""
+    """SPA 前端 — 必须在所有 API 路由之后注册。路径穿越已防护。"""
     if full_path.startswith("api/") or full_path.startswith("ws/"):
         return JSONResponse({"error": "not found"}, 404)
-    if _FRONTEND_DIST.exists() and (fp := _FRONTEND_DIST / full_path).is_file() and "." in (fp.suffix or ""):
-        return FileResponse(fp)
     if _FRONTEND_DIST.exists():
+        fp = (_FRONTEND_DIST / full_path).resolve()
+        # 防止路径穿越 (../../.env 等)
+        if fp.is_relative_to(_FRONTEND_DIST.resolve()) and fp.is_file() and "." in (fp.suffix or ""):
+            return FileResponse(fp)
+        # SPA 回退
         return HTMLResponse((_FRONTEND_DIST / "index.html").read_text(encoding="utf-8"))
     return HTMLResponse("<h3>前端未构建 — cd qianduan && npm run build</h3>", status_code=503)
 
