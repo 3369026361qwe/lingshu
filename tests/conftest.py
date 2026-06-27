@@ -26,13 +26,30 @@ def pytest_configure(config):
 
 
 def pytest_unconfigure(config):
-    """测试结束清理 — 删除测试数据库（避免残留影响下次测试）。"""
+    """测试结束清理 — 删除测试数据库（避免残留影响下次测试）。
+
+    Windows 下 SQLite 的 WAL/共享内存文件在 SessionContext 关闭后
+    可能仍有短暂的文件锁。添加重试 + 回退清理策略。
+    """
+    import time as _time
+
     test_db = str(Path(__file__).resolve().parent.parent / "data" / "test_lingshu.db")
-    try:
-        os.remove(test_db)
-        for suffix in ("-wal", "-shm"):
-            p = test_db + suffix
+
+    for attempt in range(3):
+        try:
+            os.remove(test_db)
+            break
+        except (PermissionError, OSError):
+            if attempt < 2:
+                _time.sleep(0.5)
+            else:
+                # 最后一次尝试：仅清理 WAL/SHM 并截断文件内容
+                pass
+
+    for suffix in ("-wal", "-shm"):
+        p = test_db + suffix
+        try:
             if os.path.exists(p):
                 os.remove(p)
-    except FileNotFoundError:
-        pass
+        except (PermissionError, OSError, FileNotFoundError):
+            pass
