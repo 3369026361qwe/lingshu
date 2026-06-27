@@ -5,7 +5,7 @@
  * 后端上线后可安全删除此文件。
  */
 
-import type { AgentReport } from '../types/api';
+import type { AgentReport, MarketData } from '../types/api';
 
 // ── 权益曲线 ─────────────────────────────────────────
 
@@ -48,9 +48,14 @@ export const FALLBACK_WEIGHTS = [
   { name: '情绪', weight: 0.08 },
 ];
 
-// ── 市场概览 ─────────────────────────────────────────
+// ── 市场概览（三指数） ───────────────────────────────
 
-export const FALLBACK_MARKET = {
-  index: '3,856.21',
-  change: '+0.82%',
+export const FALLBACK_MARKET: MarketData = {
+  latest_date: '',
+  stock_count: 0,
+  avg_change_pct: 0.82,
+  csi300: { index: '沪深300', value: '3,856.21', change: '+0.82%', up: true },
+  csi500: { index: '中证500', value: '5,821.35', change: '+1.15%', up: true },
+  chinext: { index: '创业板指', value: '1,892.45', change: '+2.03%', up: true },
+  updated_at: '',
 };

@@ -63,7 +63,7 @@ const SelectionPage: React.FC = () => {
 
       {/* ── 得分分布 + 表格 ── */}
       {!picks.length && !loading ? (
-        <Card style={{ background: '#161B22', border: '1px solid #21262D' }}>
+        <Card className="card-dark">
           <Empty description="暂无选股结果，请确保已有因子数据和选股计算" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         </Card>
       ) : (
@@ -72,7 +72,7 @@ const SelectionPage: React.FC = () => {
             <ReactECharts option={scoreChart} style={{ height: 280 }} />
           </Card>
 
-          <Card title={`选股排名 Top ${topN}`} style={{ background: '#161B22', border: '1px solid #21262D' }}>
+          <Card title={`选股排名 Top ${topN}`} className="card-dark">
             <Table
               dataSource={picks}
               rowKey="code"

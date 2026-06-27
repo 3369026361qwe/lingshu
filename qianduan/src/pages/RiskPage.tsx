@@ -106,12 +106,12 @@ const RiskPage: React.FC = () => {
 
         {/* ── VaR 仪表盘 + 仓位饼图 ── */}
         <Col span={8}>
-          <Card style={{ background: '#161B22', border: '1px solid #21262D' }}>
+          <Card className="card-dark">
             <ReactECharts option={varGaugeOption} style={{ height: 280 }} />
           </Card>
         </Col>
         <Col span={8}>
-          <Card title="💰 仓位分布" style={{ background: '#161B22', border: '1px solid #21262D' }}>
+          <Card title="💰 仓位分布" className="card-dark">
             {positions.length ? (
               <ReactECharts option={positionPie} style={{ height: 280 }} />
             ) : (
@@ -141,7 +141,7 @@ const RiskPage: React.FC = () => {
           <Card
             title={<span><WalletOutlined /> 当前持仓</span>}
             extra={<ReloadOutlined onClick={() => refetch()} style={{ cursor: 'pointer', color: '#9AA0A6' }} />}
-            style={{ background: '#161B22', border: '1px solid #21262D' }}
+            className="card-dark"
           >
             <Table
               dataSource={positions}

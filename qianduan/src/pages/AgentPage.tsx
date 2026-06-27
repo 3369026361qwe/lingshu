@@ -103,7 +103,7 @@ const AgentPage: React.FC = () => {
 
         {/* ── 详细报告 ── */}
         <Col span={24}>
-          <Card title="📝 详细分析报告" style={{ background: '#161B22', border: '1px solid #21262D' }}>
+          <Card title="📝 详细分析报告" className="card-dark">
             {agents.map((a, i) => (
               <Card
                 key={i}

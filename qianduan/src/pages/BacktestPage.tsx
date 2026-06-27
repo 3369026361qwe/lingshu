@@ -66,7 +66,7 @@ const BacktestPage: React.FC = () => {
     <Row gutter={[16, 16]}>
       {/* ── 回测配置 ── */}
       <Col span={8}>
-        <Card title={<span><ExperimentOutlined /> 回测配置</span>} style={{ background: '#161B22', border: '1px solid #21262D' }}>
+        <Card title={<span><ExperimentOutlined /> 回测配置</span>} className="card-dark">
           <Space direction="vertical" style={{ width: '100%' }} size="middle">
             <div>
               <div style={{ color: '#9AA0A6', marginBottom: 4, fontSize: 13 }}>开始日期</div>
@@ -140,7 +140,7 @@ const BacktestPage: React.FC = () => {
         </Card>
 
         {/* ── 权益曲线 ── */}
-        <Card title="📈 权益曲线" style={{ background: '#161B22', border: '1px solid #21262D' }}>
+        <Card title="📈 权益曲线" className="card-dark">
           {equityChart ? (
             <ReactECharts option={equityChart} style={{ height: 280 }} />
           ) : (
@@ -151,7 +151,7 @@ const BacktestPage: React.FC = () => {
 
       {/* ── 指标说明 ── */}
       <Col span={24}>
-        <Card title="📋 指标说明" size="small" style={{ background: '#161B22', border: '1px solid #21262D' }}>
+        <Card title="📋 指标说明" size="small" className="card-dark">
           <Descriptions column={3} size="small" colon={false} labelStyle={{ color: '#9AA0A6' }} contentStyle={{ color: '#E8EAED' }}>
             <Descriptions.Item label="夏普比率">年化收益率与年化波动率之比，≥1 为良好，≥2 为优秀</Descriptions.Item>
             <Descriptions.Item label="最大回撤">峰值到谷底的最大跌幅，反映尾部风险</Descriptions.Item>

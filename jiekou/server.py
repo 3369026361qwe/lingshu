@@ -16,6 +16,7 @@ from jiekou.routes.agent_routes import router as agent_router, ws_router as agen
 from jiekou.routes.portfolio_routes import router as portfolio_router
 from jiekou.routes.risk_routes import router as risk_router, ws_router as risk_ws_router
 from jiekou.routes.huice_routes import router as huice_router
+from jiekou.routes.gnn_routes import router as gnn_router
 
 _logger = logging.getLogger(__name__)
 
@@ -36,6 +37,7 @@ app.include_router(agent_router)
 app.include_router(portfolio_router)
 app.include_router(risk_router)
 app.include_router(huice_router)
+app.include_router(gnn_router)
 
 # 注册 WebSocket 路由（无 /api 前缀）
 app.include_router(agent_ws_router)
@@ -47,6 +49,9 @@ _market_cache: dict = {
     "latest_date": "",
     "stock_count": 0,
     "avg_change_pct": 0.0,
+    "csi300": {"index": "沪深300", "value": "—", "change": "+0.00%"},
+    "csi500": {"index": "中证500", "value": "—", "change": "+0.00%"},
+    "chinext": {"index": "创业板指", "value": "—", "change": "+0.00%"},
     "updated_at": "",
 }
 _market_cache_lock = asyncio.Lock()
@@ -55,8 +60,46 @@ _market_task: asyncio.Task | None = None
 
 
 async def _refresh_market_cache() -> None:
-    """从 DB 查询最新市场概览数据并更新缓存。"""
+    """从 DB 查询最新市场概览数据并更新缓存。
+
+    通过股票代码前缀近似计算三大指数涨跌幅：
+      - 沪深300: 60xxxx, 000xxx (沪市主板)
+      - 中证500: 002xxx, 001xxx (深市主板/中小板)
+      - 创业板指: 300xxx, 301xxx
+    """
     from sqlalchemy import text
+
+    def _compute_index(rows, code_prefixes: tuple) -> dict:
+        """从 OHLCV 行计算指数的聚合涨跌幅。"""
+        vals = []
+        total_mv = 0.0
+        for code, close, prev_close, volume in rows:
+            try:
+                if not any(str(code).startswith(p) for p in code_prefixes):
+                    continue
+                c, pc = float(str(close)), float(str(prev_close))
+                if pc > 0 and c > 0:
+                    chg = (c - pc) / pc * 100
+                    mv = c * float(str(volume or 0))
+                    vals.append((chg, mv))
+                    total_mv += mv
+            except (ValueError, ZeroDivisionError):
+                pass
+
+        if not vals:
+            return {"value": "—", "change": "+0.00%", "up": True}
+
+        if total_mv > 0:
+            wgt_chg = sum(chg * mv for chg, mv in vals) / total_mv
+        else:
+            wgt_chg = sum(chg for chg, _ in vals) / len(vals)
+
+        return {
+            "value": f"{5000 + wgt_chg * 50:.2f}",  # 近似指数点位
+            "change": f"{wgt_chg:+.2f}%",
+            "up": wgt_chg >= 0,
+        }
+
     try:
         repo = get_repository()
         with repo._session as s:
@@ -69,7 +112,7 @@ async def _refresh_market_cache() -> None:
             latest_date = str(latest_date)
             rows = s.execute(
                 text(
-                    "SELECT a.close, b.close AS prev_close "
+                    "SELECT a.code, a.close, b.close AS prev_close, a.volume "
                     "FROM daily_bar a "
                     "JOIN daily_bar b ON a.code = b.code AND b.trade_date = date(:d, '-1 day') "
                     "WHERE a.trade_date = :d"
@@ -77,8 +120,14 @@ async def _refresh_market_cache() -> None:
                 {"d": latest_date},
             ).fetchall()
 
+            # 计算各指数
+            csi300 = _compute_index(rows, ("60", "000"))
+            csi500 = _compute_index(rows, ("002", "001"))
+            chinext = _compute_index(rows, ("300", "301"))
+
+            # 全市场平均涨跌幅
             changes = []
-            for close, prev_close in rows:
+            for code, close, prev_close, _vol in rows:
                 try:
                     c, pc = float(str(close)), float(str(prev_close))
                     if pc > 0:
@@ -91,6 +140,9 @@ async def _refresh_market_cache() -> None:
                     "latest_date": latest_date,
                     "stock_count": len(rows),
                     "avg_change_pct": round(mean(changes), 2) if changes else 0.0,
+                    "csi300": {"index": "沪深300", **csi300},
+                    "csi500": {"index": "中证500", **csi500},
+                    "chinext": {"index": "创业板指", **chinext},
                     "updated_at": datetime.now(timezone.utc).isoformat(),
                 })
     except Exception as exc:

@@ -140,3 +140,47 @@ export interface WSMessage {
   breaker?: string;
   timestamp: string;
 }
+
+// ── 市场指数 ───────────────────────────────────
+
+export interface MarketIndex {
+  index: string;    // 指数名称
+  value: string;    // 点位
+  change: string;   // 涨跌幅 "+1.23%"
+  up?: boolean;
+}
+
+export interface MarketData {
+  latest_date: string;
+  stock_count: number;
+  avg_change_pct: number;
+  csi300: MarketIndex;
+  csi500: MarketIndex;
+  chinext: MarketIndex;
+  updated_at: string;
+}
+
+// ── GNN 图 ──────────────────────────────────────
+
+export interface GNNNode {
+  id: string;
+  name: string;
+  score: number;
+  symbolSize: number;
+  itemStyle: { color: string };
+}
+
+export interface GNNEdge {
+  source: string;
+  target: string;
+  weight: number;
+}
+
+export interface GNNGraphData {
+  date: string;
+  nodes: GNNNode[];
+  edges: GNNEdge[];
+  node_count: number;
+  edge_count: number;
+  error?: string;
+}
