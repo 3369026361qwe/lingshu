@@ -28,23 +28,22 @@ async def run_trade_pipeline(top_n: int = Query(default=10, ge=5, le=50)):
     now = datetime.now(timezone.utc)
 
     # ── 1. 加载选股得分 ──
-    with repo._session as s:
-        latest = s.execute(text("SELECT MAX(trade_date) FROM fusion_score")).scalar()
-        if not latest:
-            return {"error": "no fusion_score data", "stocks": [], "trades": []}
+    latest = repo.execute(text("SELECT MAX(trade_date) FROM fusion_score")).scalar()
+    if not latest:
+        return {"error": "no fusion_score data", "stocks": [], "trades": []}
 
-        rows = s.execute(text(
-            "SELECT code, composite_score FROM fusion_score WHERE trade_date=:d ORDER BY rank LIMIT :n"
-        ), {"d": str(latest), "n": top_n}).fetchall()
+    rows = repo.execute(text(
+        "SELECT code, composite_score FROM fusion_score WHERE trade_date=:d ORDER BY rank LIMIT :n"
+    ), {"d": str(latest), "n": top_n}).fetchall()
 
-        # 加载当前持仓
-        pos_rows = []
-        try:
-            pos_rows = s.execute(text(
-                "SELECT code, market_value, weight FROM position WHERE quantity > 0"
-            )).fetchall()
-        except Exception:
-            pass
+    # 加载当前持仓
+    pos_rows = []
+    try:
+        pos_rows = repo.execute(text(
+            "SELECT code, market_value, weight FROM position WHERE quantity > 0"
+        )).fetchall()
+    except Exception:
+        pass
 
     stocks = [{"code": r[0], "score": round(float(r[1]), 4), "rank": i + 1}
               for i, r in enumerate(rows)]
@@ -179,12 +178,11 @@ async def get_trade_history(limit: int = Query(default=20)):
     """最近的交易记录。"""
     repo = get_repository()
     try:
-        with repo._session as s:
-            rows = s.execute(text(
-                "SELECT code, direction, filled_amount, fill_price, status, created_at "
-                "FROM orders ORDER BY created_at DESC LIMIT :n"
-            ), {"n": limit}).fetchall()
-            return [
+        rows = repo.execute(text(
+            "SELECT code, direction, filled_amount, fill_price, status, created_at "
+            "FROM orders ORDER BY created_at DESC LIMIT :n"
+        ), {"n": limit}).fetchall()
+        return [
                 {
                     "code": r[0], "direction": r[1],
                     "amount": float(r[2]) if r[2] else 0,

@@ -112,49 +112,48 @@ async def _refresh_market_cache() -> None:
 
     try:
         repo = get_repository()
-        with repo._session as s:
-            latest_date = s.execute(
-                text("SELECT MAX(trade_date) FROM daily_bar")
-            ).scalar()
-            if not latest_date:
-                return
+        latest_date = repo.execute(
+            text("SELECT MAX(trade_date) FROM daily_bar")
+        ).scalar()
+        if not latest_date:
+            return
 
-            latest_date = str(latest_date)
-            rows = s.execute(
-                text(
-                    "SELECT a.code, a.close, b.close AS prev_close, a.volume "
-                    "FROM daily_bar a "
-                    "JOIN daily_bar b ON a.code = b.code AND b.trade_date = date(:d, '-1 day') "
-                    "WHERE a.trade_date = :d"
-                ),
-                {"d": latest_date},
-            ).fetchall()
+        latest_date = str(latest_date)
+        rows = repo.execute(
+            text(
+                "SELECT a.code, a.close, b.close AS prev_close, a.volume "
+                "FROM daily_bar a "
+                "JOIN daily_bar b ON a.code = b.code AND b.trade_date = date(:d, '-1 day') "
+                "WHERE a.trade_date = :d"
+            ),
+            {"d": latest_date},
+        ).fetchall()
 
-            # 计算各指数
-            csi300 = _compute_index(rows, ("60", "000"))
-            csi500 = _compute_index(rows, ("002", "001"))
-            chinext = _compute_index(rows, ("300", "301"))
+        # 计算各指数
+        csi300 = _compute_index(rows, ("60", "000"))
+        csi500 = _compute_index(rows, ("002", "001"))
+        chinext = _compute_index(rows, ("300", "301"))
 
-            # 全市场平均涨跌幅
-            changes = []
-            for code, close, prev_close, _vol in rows:
-                try:
-                    c, pc = float(str(close)), float(str(prev_close))
-                    if pc > 0:
-                        changes.append((c - pc) / pc * 100)
-                except (ValueError, ZeroDivisionError):
-                    pass
+        # 全市场平均涨跌幅
+        changes = []
+        for code, close, prev_close, _vol in rows:
+            try:
+                c, pc = float(str(close)), float(str(prev_close))
+                if pc > 0:
+                    changes.append((c - pc) / pc * 100)
+            except (ValueError, ZeroDivisionError):
+                pass
 
-            async with _market_cache_lock:
-                _market_cache.update({
-                    "latest_date": latest_date,
-                    "stock_count": len(rows),
-                    "avg_change_pct": round(mean(changes), 2) if changes else 0.0,
-                    "csi300": {"index": "沪深300", **csi300},
-                    "csi500": {"index": "中证500", **csi500},
-                    "chinext": {"index": "创业板指", **chinext},
-                    "updated_at": datetime.now(timezone.utc).isoformat(),
-                })
+        async with _market_cache_lock:
+            _market_cache.update({
+                "latest_date": latest_date,
+                "stock_count": len(rows),
+                "avg_change_pct": round(mean(changes), 2) if changes else 0.0,
+                "csi300": {"index": "沪深300", **csi300},
+                "csi500": {"index": "中证500", **csi500},
+                "chinext": {"index": "创业板指", **chinext},
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            })
     except Exception as exc:
         _logger.warning("Market cache refresh failed: %s", exc)
 

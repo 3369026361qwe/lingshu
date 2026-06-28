@@ -29,17 +29,16 @@ async def get_portfolio():
 async def get_equity_curve():
     """日频权益曲线 — 供前端 Dashboard/回测绘制。"""
     repo = get_repository()
-    with repo._session as s:
-        rows = s.execute(
-            text("SELECT trade_date, total_value FROM portfolio_snapshot ORDER BY trade_date")
-        ).fetchall()
-        return {
-            "data": [
-                {"date": str(r[0]), "value": r[1]}
-                for r in rows
-                if r[1] is not None
-            ]
-        }
+    rows = repo.execute(
+        text("SELECT trade_date, total_value FROM portfolio_snapshot ORDER BY trade_date")
+    ).fetchall()
+    return {
+        "data": [
+            {"date": str(r[0]), "value": r[1]}
+            for r in rows
+            if r[1] is not None
+        ]
+    }
 
 
 @router.get("/factors/weights")
@@ -52,10 +51,9 @@ async def get_factor_weights():
       - mock: 后端无数据时的兜底
     """
     repo = get_repository()
-    with repo._session as s:
-        rows = s.execute(
-            text("SELECT factor_name, weight FROM factor_weight ORDER BY weight DESC")
-        ).fetchall()
+    rows = repo.execute(
+        text("SELECT factor_name, weight FROM factor_weight ORDER BY weight DESC")
+    ).fetchall()
 
     if not rows:
         return {

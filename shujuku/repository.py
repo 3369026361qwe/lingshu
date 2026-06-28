@@ -61,6 +61,14 @@ class Repository:
         self._session = session
         self._degraded = False
 
+    def execute(self, statement, params=None):
+        """执行原生 SQL 查询。替代直接访问 _session 的模式。
+
+        Usage:
+            rows = repo.execute(text("SELECT ... WHERE d=:d"), {"d": date})
+        """
+        return self._session.execute(statement, params or {})
+
     def _set_degraded(self) -> None:
         """标记降级模式并上报 Prometheus 指标。"""
         if not self._degraded:
