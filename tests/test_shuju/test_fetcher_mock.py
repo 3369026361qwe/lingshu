@@ -8,7 +8,6 @@ from decimal import Decimal
 from unittest.mock import patch
 
 import pandas as pd
-import pytest
 
 from shuju.akshare_fetcher import AKShareFetcher
 

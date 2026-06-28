@@ -4,8 +4,6 @@ DataPreprocessor 边缘场景测试：负值、全缺失、大数据集、空输
 
 from decimal import Decimal
 
-import pytest
-
 from shuju.data_preprocessor import DataPreprocessor
 
 

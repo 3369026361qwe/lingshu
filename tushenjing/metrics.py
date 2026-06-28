@@ -1,5 +1,5 @@
 """tushenjing 图神经网络引擎 Prometheus 指标。"""
-from prometheus_client import Counter, Gauge, Histogram, REGISTRY
+from prometheus_client import REGISTRY, Counter, Gauge, Histogram
 
 graph_build_duration = Histogram("lingshu_graph_build_duration_seconds", "Graph building duration", buckets=[0.01, 0.05, 0.1, 0.5, 1.0, 5.0, 10.0, 30.0], registry=REGISTRY)
 graph_nodes_total = Gauge("lingshu_graph_nodes_total", "Total nodes in graph", registry=REGISTRY)

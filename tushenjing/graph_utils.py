@@ -7,7 +7,6 @@
 
 import logging
 from decimal import Decimal
-from typing import Optional
 
 import numpy as np
 
@@ -50,7 +49,7 @@ class GraphUtils:
     def build_feature_matrix(
         stock_list: list[str],
         factor_data: dict[str, dict[str, Decimal]],  # {code: {factor: value}}
-        feature_order: Optional[list[str]] = None,
+        feature_order: list[str] | None = None,
         fill_value: float = 0.0,
     ) -> tuple[np.ndarray, list[str]]:
         """从因子数据构建特征矩阵。
@@ -193,8 +192,9 @@ class GraphUtils:
         Returns:
             边列表 [(src_idx, dst_idx), ...]
         """
-        import numpy as np
         from collections import defaultdict
+
+        import numpy as np
 
         n_stocks = len(stock_codes)
         stock_feat_matrix = np.zeros((n_stocks, len(feature_names)), dtype=np.float32)

@@ -8,15 +8,18 @@
 
 本脚本提供因子相关性矩阵 + A/B/C/D 分级 + DB 数据加载 + 综合报告。
 """
-import csv, json, time, os, sys
-from pathlib import Path
+import csv
+import sys
+import time
 from collections import defaultdict
 from decimal import Decimal
-from math import sqrt, isnan, isinf, log2
+from math import isinf, isnan, sqrt
+from pathlib import Path
 from statistics import mean, stdev
 
 import numpy as np
 from dotenv import load_dotenv
+
 load_dotenv(Path('E:/28721/lingshu/.env'))
 sys.stdout.reconfigure(encoding='utf-8')
 
@@ -37,7 +40,7 @@ print('Loading data...')
 t0 = time.time()
 
 # Load daily close prices for forward return computation
-with open(BASE / 'hs800_daily_all.csv', 'r', encoding='utf-8-sig') as f:
+with open(BASE / 'hs800_daily_all.csv', encoding='utf-8-sig') as f:
     raw_rows = list(csv.DictReader(f))
 
 all_dates = sorted(set(r['trade_date'] for r in raw_rows))
@@ -49,8 +52,9 @@ for r in raw_rows:
     close_map[r['ts_code']][r['trade_date']] = Decimal(r['close'])
 
 # Load factor values from DB
-from shujuku.session import SessionContext
 from sqlalchemy import text
+
+from shujuku.session import SessionContext
 
 with SessionContext() as s:
     rows = s.execute(text(
@@ -63,7 +67,7 @@ print(f'  Load time: {time.time()-t0:.1f}s')
 # Build: {trade_date: {factor_name: {code: value}}}
 t0 = time.time()
 factor_data = defaultdict(lambda: defaultdict(dict))
-for code, trade_date, category, factor_name, raw_value in rows:
+for code, trade_date, _category, factor_name, raw_value in rows:
     try:
         val = Decimal(str(raw_value))
         if val is not None:
@@ -86,7 +90,7 @@ t0 = time.time()
 
 # For each measurement date, compute FORWARD_DAYS forward return
 forward_returns = {}  # {date: {code: return}}
-for di, mdate in enumerate(fv_dates):
+for _di, mdate in enumerate(fv_dates):
     mdi = date_index.get(mdate, -1)
     if mdi < 0:
         continue
@@ -109,7 +113,7 @@ print(f'  Forward returns: {len(forward_returns)} dates ({time.time()-t0:.1f}s)'
 print('\nComputing IC series...')
 t0 = time.time()
 
-from scipy.stats import spearmanr, pearsonr
+from scipy.stats import pearsonr, spearmanr
 
 ic_data = defaultdict(lambda: {'rank_ic': [], 'pearson_ic': [], 'dates': [], 'n_stocks': []})
 
@@ -128,7 +132,7 @@ for mdate in fv_dates:
         r_vals = [float(fr[c]) for c in common]
 
         # Filter inf/nan
-        valid = [(f, r) for f, r in zip(f_vals, r_vals)
+        valid = [(f, r) for f, r in zip(f_vals, r_vals, strict=False)
                  if not isnan(f) and not isinf(f) and abs(f) < 1e8
                  and not isnan(r) and not isinf(r)]
         if len(valid) < MIN_STOCKS:
@@ -336,7 +340,7 @@ def assign_grade(ir, t_stat, pos_rate, spread_t):
 # 8. Print Report
 # ═══════════════════════════════════════════════════════════
 print(f'\n{"="*90}')
-print(f'  灵枢量化系统 — 因子质量评估报告')
+print('  灵枢量化系统 — 因子质量评估报告')
 print(f'  评估区间: {fv_dates[0]} ~ {fv_dates[-1]} ({len(fv_dates)} 期)')
 print(f'  前瞻窗口: {FORWARD_DAYS} 交易日')
 print(f'  评估因子: {len(factor_stats)} 个')
@@ -344,7 +348,7 @@ print(f'{"="*90}')
 
 # IC/IR Table
 print(f'\n{"─"*90}')
-print(f'  IC/IR 排名')
+print('  IC/IR 排名')
 print(f'{"─"*90}')
 header = f'  {"Rank":>4s}  {"Factor":25s}  {"N":>5s}  {"RankIC":>8s}  {"StdIC":>8s}  {"IR":>8s}  {"t-stat":>7s}  {"Win%":>6s}  {"Pearson":>8s}  {"Grade":>5s}'
 print(header)
@@ -365,7 +369,7 @@ for rank, fs in enumerate(factor_stats, 1):
 
 # Grade distribution
 print(f'\n{"─"*90}')
-print(f'  因子分级分布')
+print('  因子分级分布')
 print(f'{"─"*90}')
 for g in ['A', 'B', 'C', 'D']:
     if g in grades_dist:
@@ -374,19 +378,19 @@ for g in ['A', 'B', 'C', 'D']:
 
 # Factor Correlation Summary
 print(f'\n{"─"*90}')
-print(f'  因子相关性矩阵 (Top 20, |corr| > 0.7 高亮)')
+print('  因子相关性矩阵 (Top 20, |corr| > 0.7 高亮)')
 print(f'{"─"*90}')
 
 # Print correlation matrix header
 print(f'  {"":25s}', end='')
-for i, fn in enumerate(top_factors):
+for _i, fn in enumerate(top_factors):
     short = fn[:6]
     print(f'{short:>7s}', end='')
 print()
 
 for i, fni in enumerate(top_factors):
     print(f'  {fni:25s}', end='')
-    for j, fnj in enumerate(top_factors):
+    for j, _fnj in enumerate(top_factors):
         corr = corr_matrix[i, j]
         if i == j:
             print(f'  {"·":>5s}', end='')
@@ -397,7 +401,7 @@ for i, fni in enumerate(top_factors):
     print()
 
 # Identify redundant factor pairs
-print(f'\n  高相关因子对 (|corr| > 0.7):')
+print('\n  高相关因子对 (|corr| > 0.7):')
 redundant_pairs = []
 for i in range(n_top):
     for j in range(i + 1, n_top):
@@ -407,11 +411,11 @@ if redundant_pairs:
     for fi, fj, c in sorted(redundant_pairs, key=lambda x: abs(x[2]), reverse=True):
         print(f'    {fi:25s} <-> {fj:25s}  corr={c:+.3f}')
 else:
-    print(f'    (none)')
+    print('    (none)')
 
 # Layered Backtest Summary
 print(f'\n{"─"*90}')
-print(f'  分层回测 Top-Bottom Spread (10 分位组)')
+print('  分层回测 Top-Bottom Spread (10 分位组)')
 print(f'{"─"*90}')
 print(f'  {"Factor":25s}  {"Spread":>10s}  {"t-stat":>8s}  {"+Spread%":>8s}  {"Top Ret":>10s}  {"Bot Ret":>10s}')
 print(f'  {"-"*78}')
@@ -424,9 +428,10 @@ for fname, lr in sorted_layers:
 
 # NDCG and Ranking Metrics
 print(f'\n{"─"*90}')
-print(f'  排序质量指标 (NDCG@30)')
+print('  排序质量指标 (NDCG@30)')
 print(f'{"─"*90}')
 from yinzi.factor_validator import FactorValidator
+
 validator = FactorValidator()
 
 ndcg_scores = {}
@@ -451,7 +456,7 @@ for rank, (fname, ndcg) in enumerate(sorted(ndcg_scores.items(), key=lambda x: x
 
 # Rolling IC Stability
 print(f'\n{"─"*90}')
-print(f'  IC 稳定性 (60 期滚动标准差，越小越稳定)')
+print('  IC 稳定性 (60 期滚动标准差，越小越稳定)')
 print(f'{"─"*90}')
 stability_ranking = sorted(factor_stats, key=lambda x: x['ic_stability'])[:10]
 for rank, fs in enumerate(stability_ranking, 1):
@@ -460,18 +465,18 @@ for rank, fs in enumerate(stability_ranking, 1):
 
 # Final summary
 print(f'\n{"="*90}')
-print(f'  综合评估结论')
+print('  综合评估结论')
 print(f'{"="*90}')
 print(f'  有效因子 (|IR| > 0.3): {len(grades_dist.get("A", [])) + len(grades_dist.get("B", []))} 个')
 print(f'  需优化因子 (0.15 < |IR| < 0.3): {len(grades_dist.get("C", []))} 个')
 print(f'  无效因子 (|IR| < 0.15): {len(grades_dist.get("D", []))} 个')
 print(f'  高相关因子对 (|corr| > 0.7): {len(redundant_pairs)} 对')
-print(f'')
-print(f'  建议:')
+print('')
+print('  建议:')
 if len(grades_dist.get('D', [])) > 0:
     print(f'    1. 淘汰 D 级因子: {", ".join(grades_dist["D"])}')
 if redundant_pairs:
-    print(f'    2. 去冗余: 对高相关因子对，保留 |IR| 更高的那个')
+    print('    2. 去冗余: 对高相关因子对，保留 |IR| 更高的那个')
 a_plus_b = grades_dist.get('A', []) + grades_dist.get('B', [])
 if a_plus_b:
     print(f'    3. 核心因子池: {", ".join(a_plus_b)} (A+B 级)')

@@ -1,7 +1,8 @@
 """批量调仓执行器 — 先卖后买+回滚+A股取整。"""
-from decimal import Decimal, ROUND_DOWN
-from zhixing.order_manager import OrderManager, Order, A_SHARE_LOT_SIZE
+from decimal import Decimal
+
 from zhixing.metrics import executor_batch_total
+from zhixing.order_manager import A_SHARE_LOT_SIZE, Order, OrderManager
 
 
 class BatchExecutor:

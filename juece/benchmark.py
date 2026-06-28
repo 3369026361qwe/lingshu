@@ -3,7 +3,6 @@
 """
 
 from decimal import Decimal
-from typing import Optional
 
 
 class Benchmark:
@@ -46,7 +45,7 @@ class Benchmark:
     def sharpe_ratio(
         daily_returns: list[Decimal],
         risk_free_rate: Decimal = Decimal("0.03"),
-    ) -> Optional[Decimal]:
+    ) -> Decimal | None:
         """年化夏普比率。
 
         Sharpe = (年化收益 - 无风险利率) / 年化波动率
@@ -69,7 +68,7 @@ class Benchmark:
         return ((ann_return - risk_free_rate) / ann_std).quantize(Decimal("0.0001"))
 
     @staticmethod
-    def max_drawdown(equity_curve: list[Decimal]) -> Optional[Decimal]:
+    def max_drawdown(equity_curve: list[Decimal]) -> Decimal | None:
         """最大回撤。"""
         if not equity_curve:
             return None
@@ -87,7 +86,7 @@ class Benchmark:
         return max_dd.quantize(Decimal("0.0001"))
 
     @staticmethod
-    def win_rate(daily_returns: list[Decimal]) -> Optional[Decimal]:
+    def win_rate(daily_returns: list[Decimal]) -> Decimal | None:
         """日胜率。"""
         if not daily_returns:
             return None
@@ -95,13 +94,18 @@ class Benchmark:
         return (Decimal(str(wins)) / Decimal(str(len(daily_returns)))).quantize(Decimal("0.0001"))
 
     @staticmethod
-    def ranking_metric(predictions: dict[str, Decimal], actual_returns: dict[str, Decimal], k: int = 5) -> Optional[Decimal]:
+    def ranking_metric(predictions: dict[str, Decimal], actual_returns: dict[str, Decimal], k: int = 5) -> Decimal | None:
         """P2-5: THU-BDC2026归一化Top-K排序质量。"""
         common = set(predictions) & set(actual_returns)
         pairs = [(c, float(predictions[c]), float(actual_returns[c])) for c in common]
-        if len(pairs) < k: return None
-        pairs.sort(key=lambda x: x[1], reverse=True); ps = sum(p[2] for p in pairs[:k])
-        pairs.sort(key=lambda x: x[2], reverse=True); ms = sum(p[2] for p in pairs[:k])
-        rs = k * sum(p[2] for p in pairs) / len(pairs); d = ms - rs
-        if abs(d) < 1e-12: return Decimal("0")
+        if len(pairs) < k:
+            return None
+        pairs.sort(key=lambda x: x[1], reverse=True)
+        ps = sum(p[2] for p in pairs[:k])
+        pairs.sort(key=lambda x: x[2], reverse=True)
+        ms = sum(p[2] for p in pairs[:k])
+        rs = k * sum(p[2] for p in pairs) / len(pairs)
+        d = ms - rs
+        if abs(d) < 1e-12:
+            return Decimal("0")
         return Decimal(str(round((ps - rs) / d, 6)))

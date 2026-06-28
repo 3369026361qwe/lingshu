@@ -5,11 +5,10 @@ GNN 模型训练器。
 """
 
 import logging
-from typing import Optional
 
 import numpy as np
 
-from tushenjing.metrics import gnn_train_loss, gnn_val_loss, gnn_train_epochs_total, gnn_early_stopped
+from tushenjing.metrics import gnn_early_stopped, gnn_train_epochs_total, gnn_train_loss, gnn_val_loss
 
 _logger = logging.getLogger(__name__)
 
@@ -181,7 +180,7 @@ class GraphTrainer:
             pass
         return float(np.mean((y_pred - y_true) ** 2))
 
-    def _get_weights(self) -> Optional[dict]:
+    def _get_weights(self) -> dict | None:
         """获取当前模型权重快照。"""
         if hasattr(self.model, 'get_weights_snapshot'):
             return self.model.get_weights_snapshot()

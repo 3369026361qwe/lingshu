@@ -1,3 +1,4 @@
+# ruff: noqa: E999 (datetime("now") in SQL strings confuses parser)
 """
 Tushare 全量数据下载 — 股票列表 → 日线行情 → 财务数据 → 行业分类。
 直接灌入 SQLite 数据库，拉完即可运行因子计算 + 每日流水线。

@@ -19,10 +19,6 @@ Usage:
 import hashlib
 import logging
 import time
-from datetime import date, datetime
-from typing import Any, Optional
-
-import pandas as pd
 
 from shuju.cache_manager import DataCacheManager
 
@@ -35,7 +31,7 @@ _REQUEST_INTERVAL = 0.5
 class NewsFetcher:
     """新闻公告数据获取器。"""
 
-    def __init__(self, cache: Optional[DataCacheManager] = None) -> None:
+    def __init__(self, cache: DataCacheManager | None = None) -> None:
         self._cache = cache or DataCacheManager()
         self._last_request = 0.0
 

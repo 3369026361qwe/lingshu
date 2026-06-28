@@ -7,7 +7,6 @@
 """
 
 from decimal import Decimal
-from typing import Optional
 
 
 class EnsembleEngine:
@@ -29,9 +28,9 @@ class EnsembleEngine:
 
     def update_weights_from_ic(
         self,
-        factor_ic: Optional[Decimal] = None,
-        gnn_ic: Optional[Decimal] = None,
-        agent_ic: Optional[Decimal] = None,
+        factor_ic: Decimal | None = None,
+        gnn_ic: Decimal | None = None,
+        agent_ic: Decimal | None = None,
     ) -> dict[str, Decimal]:
         """根据各信号源的历史 IC 表现动态调整融合权重。
 
@@ -70,8 +69,8 @@ class EnsembleEngine:
     def fuse(
         self,
         factor_scores: dict[str, Decimal],       # {code: factor_score}
-        gnn_scores: Optional[dict[str, float]] = None,   # {code: gnn_score}
-        agent_scores: Optional[dict[str, Decimal]] = None, # {code: agent_score}
+        gnn_scores: dict[str, float] | None = None,   # {code: gnn_score}
+        agent_scores: dict[str, Decimal] | None = None, # {code: agent_score}
         normalize: bool = True,
     ) -> dict[str, Decimal]:
         """三路信号加权融合 → 全市场综合得分。
@@ -121,7 +120,7 @@ class EnsembleEngine:
     # ── 工具 ────────────────────────────────────────────
 
     @staticmethod
-    def _minmax_norm(scores: Optional[dict]) -> dict:
+    def _minmax_norm(scores: dict | None) -> dict:
         """Min-Max 归一化到 [0, 1]。返回 float 值。"""
         if not scores:
             return {}

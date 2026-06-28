@@ -2,7 +2,6 @@
 风险监控 Agent — 独立风险判断，有权否决交易。
 """
 
-import json
 import time
 from datetime import datetime
 from decimal import Decimal
@@ -32,7 +31,7 @@ class RiskMonitor(AgentBase):
             data = self._parse_response(response)
 
             # 合并：本地规则优先
-            risk_level = data.get("risk_level", local_risk["risk_level"])
+            data.get("risk_level", local_risk["risk_level"])
             risk_score = max(int(data.get("risk_score", 1)), local_risk["risk_score"])
             veto = data.get("veto", False) or local_risk["veto"]
 

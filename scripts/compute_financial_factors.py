@@ -5,14 +5,15 @@
 Usage:
     python scripts/compute_financial_factors.py
 """
-import sys, os, time
-from pathlib import Path
+import sys
+import time
 
 try: sys.stdout.reconfigure(encoding='utf-8')
 except: pass
 
-from shujuku.session import SessionContext
 from sqlalchemy import text
+
+from shujuku.session import SessionContext
 
 print('=' * 60)
 print('财务因子提取: financial_report → factor_value')
@@ -51,7 +52,7 @@ with SessionContext() as s:
         code = row[0]
         if code not in fin_map:
             vals = {}
-            for i, (col, fn, cat, direction) in enumerate(FINANCIAL_FACTORS):
+            for i, (_col, fn, cat, _direction) in enumerate(FINANCIAL_FACTORS):
                 raw = row[i + 1]
                 if raw is not None:
                     try:

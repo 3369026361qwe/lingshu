@@ -17,8 +17,8 @@ import torch
 from dotenv import load_dotenv
 from torch_geometric.nn import GATConv
 
-from tushenjing.graph_utils import GraphUtils
 from tushenjing.graph_trainer import GraphTrainer
+from tushenjing.graph_utils import GraphUtils
 
 load_dotenv(Path(__file__).resolve().parent.parent / '.env')
 
@@ -69,8 +69,9 @@ def main():
     # 1 ── 加载数据 ──
     print('[1/6] Loading...')
     t0 = time.time()
-    from shujuku.session import SessionContext
     from sqlalchemy import text
+
+    from shujuku.session import SessionContext
     with SessionContext() as s:
         fv_rows = s.execute(text(
             'SELECT code, trade_date, factor_name, raw_value '
@@ -144,7 +145,7 @@ def main():
     print(f'  {len(dates_list)} snapshots ({time.time() - t0:.1f}s)')
 
     # 4 ── 训练 (使用模块) ──
-    print(f'[4/6] Training GAT...')
+    print('[4/6] Training GAT...')
     t0 = time.time()
     n_train = int(len(dates_list) * 0.6)
     model = StockGAT().to(DEVICE)
@@ -153,7 +154,7 @@ def main():
     loss_fn = GraphUtils.ranking_loss
 
     trainer = GraphTrainer(model, epochs=args.epochs, patience=20, verbose=True)
-    result = trainer.fit_batches(
+    trainer.fit_batches(
         features_list, labels_list, ei,
         n_train=n_train, optimizer=opt, loss_fn=loss_fn, device=DEVICE,
     )

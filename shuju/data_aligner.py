@@ -19,9 +19,7 @@ Usage:
 
 import logging
 from collections import defaultdict
-from datetime import date, datetime, timedelta
-from decimal import Decimal
-from typing import Any, Optional
+from datetime import datetime
 
 from shuju.constants import FINANCIAL_FILL_LIMIT_DAYS
 
@@ -44,9 +42,9 @@ class DataAligner:
         self,
         trade_dates: list[str],
         daily_bars: dict[str, list[dict]],       # {code: [bar, ...]}
-        financials: Optional[dict[str, list[dict]]] = None,
-        sentiment: Optional[dict[str, list[dict]]] = None,
-        industry: Optional[dict[str, str]] = None,  # {code: sw_level1}
+        financials: dict[str, list[dict]] | None = None,
+        sentiment: dict[str, list[dict]] | None = None,
+        industry: dict[str, str] | None = None,  # {code: sw_level1}
     ) -> dict[str, list[dict]]:
         """将所有数据源对齐到统一交易日历。
 
@@ -177,7 +175,7 @@ class DataAligner:
     # ── 工具 ────────────────────────────────────────────
 
     @staticmethod
-    def _get_latest_financial(reports: list[dict], trade_date: str) -> Optional[dict]:
+    def _get_latest_financial(reports: list[dict], trade_date: str) -> dict | None:
         """获取交易日当天最新的财务数据 (报告期不晚于交易日)。"""
         best = None
         for r in reports:
@@ -188,7 +186,7 @@ class DataAligner:
         return best
 
     @staticmethod
-    def _get_sentiment_for_date(sentiment_list: list[dict], trade_date: str) -> Optional[dict]:
+    def _get_sentiment_for_date(sentiment_list: list[dict], trade_date: str) -> dict | None:
         """获取交易日对应的舆情数据（不含未来信息）。"""
         for s in sentiment_list:
             if s.get("date", "") == trade_date:

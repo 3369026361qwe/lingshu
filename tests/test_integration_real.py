@@ -4,7 +4,6 @@
 用法: python -m pytest tests/test_integration_real.py -v -s
 """
 
-import time
 from datetime import date
 from decimal import Decimal
 
@@ -29,14 +28,14 @@ class TestRealDataPipeline:
         """Step 2: 拉取真实日线数据。"""
         from shuju.akshare_fetcher import AKShareFetcher
         fetcher = AKShareFetcher()
-        bars = fetcher.get_daily_bars("000001", start="20260601", end="20260603", use_cache=False)
+        fetcher.get_daily_bars("000001", start="20260601", end="20260603", use_cache=False)
         # 历史日期可能无数据，检查优雅降级
         bars2 = fetcher.get_daily_bars("000001", use_cache=False)
         assert isinstance(bars2, list), "应返回列表（即使无数据）"
         if bars2:
             print(f"\n[OK] 000001: {len(bars2)} 条日线, 最新收盘: {bars2[-1].get('close', 'N/A')}")
         else:
-            print(f"\n[WARN] 000001 日线为空（网络问题或日期无数据），优雅降级正常")
+            print("\n[WARN] 000001 日线为空（网络问题或日期无数据），优雅降级正常")
 
     @pytest.mark.integration
     def test_fetch_real_industry(self):
@@ -50,7 +49,7 @@ class TestRealDataPipeline:
             for code, info in sample:
                 print(f"   {code}: {info.get('sw_level1', '?')}")
         else:
-            print(f"\n[WARN] 行业数据为空（网络问题），优雅降级正常")
+            print("\n[WARN] 行业数据为空（网络问题），优雅降级正常")
 
     @pytest.mark.integration
     def test_full_pipeline_with_mock_data(self):
@@ -85,10 +84,10 @@ class TestRealDataPipeline:
                               "net_profit": Decimal(str(1e8 + i * 1e6))}
 
         # 因子计算
-        from yinzi.value_factors import PEFactor
         from yinzi.quality_factors import ROEFactor
+        from yinzi.value_factors import PEFactor
         pe = PEFactor()
-        roe = ROEFactor()
+        ROEFactor()
         factor_results = []
         for code in stock_list:
             v = pe.compute(code, daily_data.get(code, {}), fin_data.get(code, {}))
@@ -133,10 +132,10 @@ class TestRealDataPipeline:
     @pytest.mark.integration
     def test_factor_to_persistence(self):
         """Step 5: 因子→持久化完整链路。"""
-        from shujuku.session import init_db, SessionContext
         from shujuku.repository import Repository
+        from shujuku.session import SessionContext, init_db
+        from yinzi.factor_base import FactorCategory, FactorResult
         from yinzi.factor_store import FactorStore
-        from yinzi.factor_base import FactorResult, FactorCategory
 
         init_db(drop_all=True)
 
@@ -159,7 +158,7 @@ class TestRealDataPipeline:
             assert len(pe_vals) == 1
             assert pe_vals[0].raw_value == Decimal("15.5")
 
-        print(f"\n[OK] 持久化: 3条因子记录 → 读写验证通过")
+        print("\n[OK] 持久化: 3条因子记录 → 读写验证通过")
 
     @pytest.mark.integration
     def test_zhinengti_orchestrator(self):
@@ -187,10 +186,10 @@ class TestRealDataPipeline:
     @pytest.mark.integration
     def test_graph_build_and_inference(self):
         """Step 7: GNN 图构建+推理。"""
-        from tushenjing.graph_builder import GraphBuilder
-        from tushenjing.graph_utils import GraphUtils
         from tushenjing.gnn_model import GCNModel
+        from tushenjing.graph_builder import GraphBuilder
         from tushenjing.graph_inference import GraphInference
+        from tushenjing.graph_utils import GraphUtils
 
         stocks = [f"{i:06d}" for i in range(1, 51)]
         industry = {c: f"行业{i % 8}" for i, c in enumerate(stocks)}

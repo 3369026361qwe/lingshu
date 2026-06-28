@@ -1,6 +1,5 @@
 """历史场景压力测试器。"""
 from decimal import Decimal
-from typing import Optional
 
 
 class StressTester:
@@ -24,7 +23,7 @@ class StressTester:
         liq_discount = scenario["liquidity_discount"]
         total_loss = Decimal("0")
 
-        for code, pos in positions.items():
+        for _code, pos in positions.items():
             mv = Decimal(str(pos.get("market_value", 0)))
             beta = Decimal(str(pos.get("beta", 1.0)))
             loss = mv * shock * beta

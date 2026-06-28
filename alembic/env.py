@@ -5,6 +5,7 @@ from logging.config import fileConfig
 from pathlib import Path
 
 from sqlalchemy import engine_from_config, pool
+
 from alembic import context
 
 # 确保项目根目录在 sys.path 中
@@ -32,13 +33,13 @@ if _db_url:
     config.set_main_option("sqlalchemy.url", _db_url)
 
 # 导入所有模型 → 注册到 Base.metadata
-from shujuku.models import Base  # noqa: E402
-import shujuku.models.market_models    # noqa: E402, F401
-import shujuku.models.yinzi_models     # noqa: E402, F401
-import shujuku.models.zhinengti_models # noqa: E402, F401
-import shujuku.models.jiaoyi_models    # noqa: E402, F401
 import shujuku.models.fengkong_models  # noqa: E402, F401
-import shujuku.models.juece_models     # noqa: E402, F401
+import shujuku.models.jiaoyi_models  # noqa: E402, F401
+import shujuku.models.juece_models  # noqa: E402, F401
+import shujuku.models.market_models  # noqa: E402, F401
+import shujuku.models.yinzi_models  # noqa: E402, F401
+import shujuku.models.zhinengti_models  # noqa: E402, F401
+from shujuku.models import Base  # noqa: E402
 
 target_metadata = Base.metadata
 

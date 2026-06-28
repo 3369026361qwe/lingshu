@@ -2,21 +2,20 @@
 测试 Agent 基类、Orchestrator、5个Agent（使用 MockLLMClient）。
 """
 
-import json
 from datetime import datetime
 from decimal import Decimal
 
 import pytest
 
-from zhinengti.agent_base import AgentBase, AgentOutput, AgentStatus
+from zhinengti.agent_base import AgentOutput, AgentStatus
 from zhinengti.llm_client import MockLLMClient
 from zhinengti.macro_analyst import MacroAnalyst
-from zhinengti.sector_analyst import SectorAnalyst
-from zhinengti.stock_analyst import StockAnalyst
-from zhinengti.sentiment_analyst import SentimentAnalyst
-from zhinengti.risk_monitor import RiskMonitor
-from zhinengti.orchestrator import Orchestrator, create_default_orchestrator
+from zhinengti.orchestrator import create_default_orchestrator
 from zhinengti.rag_pipeline import RAGPipeline
+from zhinengti.risk_monitor import RiskMonitor
+from zhinengti.sector_analyst import SectorAnalyst
+from zhinengti.sentiment_analyst import SentimentAnalyst
+from zhinengti.stock_analyst import StockAnalyst
 
 
 @pytest.fixture

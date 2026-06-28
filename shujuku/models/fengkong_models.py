@@ -10,7 +10,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Float, Index, Integer, Numeric, String, Text
+from sqlalchemy import DateTime, Index, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from shujuku.models import Base, utcnow

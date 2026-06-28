@@ -1,10 +1,9 @@
 """测试 factor_scoring 模块 — 5 个独立评分函数。"""
-import pytest
 from yinzi.factor_scoring import (
     _score_ic_20d,
     _score_ic_decay,
-    _score_regime,
     _score_monotonicity,
+    _score_regime,
     _score_stability,
     compute_final_grade,
 )

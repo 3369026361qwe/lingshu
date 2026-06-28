@@ -2,7 +2,6 @@
 测试 Redis 缓存管理器（含降级模式）。
 """
 
-import json
 
 from shujuku.redis_cache import CacheManager, _MemoryStore
 

@@ -12,8 +12,8 @@ Usage:
     from shujuku.redis_cache import CacheManager
 """
 
-from shujuku.config import DATABASE_URL, REDIS_URL, DB_ECHO
-from shujuku.session import get_session, SessionContext, init_db
+from shujuku.config import DATABASE_URL, DB_ECHO, REDIS_URL
+from shujuku.session import SessionContext, get_session, init_db
 
 __all__ = [
     "DATABASE_URL",

@@ -1,6 +1,6 @@
 """依赖注入 — 单例管理。"""
-from shujuku.session import get_session
 from shujuku.repository import Repository
+from shujuku.session import get_session
 
 _repo_singleton = None
 

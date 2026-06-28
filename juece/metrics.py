@@ -1,5 +1,5 @@
 """juece 集成决策引擎 Prometheus 指标。"""
-from prometheus_client import Counter, Gauge, Histogram, REGISTRY
+from prometheus_client import REGISTRY, Counter, Gauge, Histogram
 
 ensemble_fusion_total = Counter("lingshu_ensemble_fusion_total", "Total fusion operations", ["mode"], registry=REGISTRY)
 ensemble_fusion_duration = Histogram("lingshu_ensemble_fusion_duration_seconds", "Fusion duration", buckets=[0.001, 0.01, 0.05, 0.1, 0.5, 1.0], registry=REGISTRY)

@@ -10,7 +10,6 @@ P0-2: 所有配置已迁移到 shuju.config.ShujuConfig。
     max_retries = cfg.max_retries
 """
 
-import warnings
 
 from shuju.config import get_config as _get_config
 

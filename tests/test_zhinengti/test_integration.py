@@ -2,15 +2,14 @@
 zhinengti 集成测试：Agent → shujuku 持久化完整链路。
 """
 
-import json
 from decimal import Decimal
 
 import pytest
 
+from shujuku.repository import Repository
+from shujuku.session import SessionContext, init_db
 from zhinengti.llm_client import MockLLMClient
 from zhinengti.orchestrator import create_default_orchestrator
-from shujuku.session import init_db, SessionContext
-from shujuku.repository import Repository
 
 
 @pytest.fixture(autouse=True)

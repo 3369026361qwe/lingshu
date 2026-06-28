@@ -17,9 +17,8 @@ Usage:
 import logging
 import time
 from decimal import Decimal
-from typing import Optional
 
-from shuju.constants import WINSORIZE_METHOD, WINSORIZE_N_SIGMA, FILL_METHOD, MIN_SAMPLE_SIZE
+from shuju.constants import FILL_METHOD, MIN_SAMPLE_SIZE, WINSORIZE_METHOD, WINSORIZE_N_SIGMA
 from shuju.metrics import preprocessor_duration, preprocessor_records_total
 
 _logger = logging.getLogger(__name__)
@@ -57,7 +56,7 @@ class DataPreprocessor:
     def pipeline(
         self,
         data: dict[str, dict[str, Decimal]],  # {code: {factor_name: value}}
-        industry_map: Optional[dict[str, str]] = None,  # {code: sw_level1}
+        industry_map: dict[str, str] | None = None,  # {code: sw_level1}
     ) -> dict[str, dict[str, Decimal]]:
         """完整预处理流水线。
 
@@ -113,7 +112,7 @@ class DataPreprocessor:
 
         for fname in factor_names:
             values = []
-            for code, factors in data.items():
+            for _code, factors in data.items():
                 v = factors.get(fname)
                 if v is not None:
                     values.append(v)
@@ -140,7 +139,7 @@ class DataPreprocessor:
 
         return data
 
-    def _mad_bounds(self, values: list[Decimal]) -> tuple[Optional[Decimal], Optional[Decimal]]:
+    def _mad_bounds(self, values: list[Decimal]) -> tuple[Decimal | None, Decimal | None]:
         """MAD 法计算上下界。"""
         try:
             med = _decimal_median(values)
@@ -154,7 +153,7 @@ class DataPreprocessor:
             _logger.warning("MAD bounds failed: %s", exc)
             return None, None
 
-    def _sigma_bounds(self, values: list[Decimal]) -> tuple[Optional[Decimal], Optional[Decimal]]:
+    def _sigma_bounds(self, values: list[Decimal]) -> tuple[Decimal | None, Decimal | None]:
         """标准差法计算上下界。"""
         try:
             n = Decimal(len(values))

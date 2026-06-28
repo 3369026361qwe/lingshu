@@ -1,5 +1,6 @@
 """成交记录器 — 成交记录持久化。"""
 from decimal import Decimal
+
 from zhixing.order_manager import Order
 
 
@@ -15,8 +16,9 @@ class TradeRecorder:
         self._trades.append(trade)
         if self._repo:
             try:
-                from shujuku.models.jiaoyi_models import Trade as TradeModel
                 import uuid
+
+                from shujuku.models.jiaoyi_models import Trade as TradeModel
                 t = TradeModel(trade_id=uuid.uuid4().hex[:12], order_id=order.order_id, code=order.code, direction=order.direction, quantity=order.filled_qty, price=fill_price, amount=fill_price * order.filled_qty, commission=commission)
                 self._repo.add(t)
             except Exception:

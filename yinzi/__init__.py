@@ -17,29 +17,47 @@ Usage:
     factors = engine.compute_all(daily_data, financial_data)
 """
 
-from yinzi.factor_base import FactorBase, FactorCategory
-from yinzi.value_factors import (
-    PEFactor, PBFactor, PSFactor, FCFYieldFactor, PEGFactor,
+from yinzi.alternative_factors import (
+    AnalystCoverageFactor,
+    InstitutionalHoldingFactor,
+    ShareholderCountFactor,
 )
+from yinzi.engine import FactorEngine  # noqa: F401 (re-exported for public API)
+from yinzi.factor_base import FactorBase, FactorCategory
+from yinzi.factor_store import FactorStore
+from yinzi.factor_validator import FactorValidator
+from yinzi.kalman_weight import KalmanWeightEstimator
 from yinzi.momentum_factors import (
-    Momentum1MFactor, Momentum3MFactor, Momentum6MFactor, Momentum12M1MFactor,
+    Momentum1MFactor,
+    Momentum3MFactor,
+    Momentum6MFactor,
+    Momentum12M1MFactor,
 )
 from yinzi.quality_factors import (
-    ROEFactor, ROAFactor, GrossMarginFactor, NetMarginFactor,
-)
-from yinzi.volatility_factors import (
-    HistoricalVolFactor, DownsideVolFactor, BetaFactor, VaRFactor,
+    GrossMarginFactor,
+    NetMarginFactor,
+    ROAFactor,
+    ROEFactor,
 )
 from yinzi.sentiment_factors import (
-    VolumeRatioFactor, MoneyFlowFactor, TurnoverAnomalyFactor, NorthBoundFactor,
+    MoneyFlowFactor,
+    NorthBoundFactor,
+    TurnoverAnomalyFactor,
+    VolumeRatioFactor,
 )
-from yinzi.alternative_factors import (
-    AnalystCoverageFactor, InstitutionalHoldingFactor, ShareholderCountFactor,
+from yinzi.value_factors import (
+    FCFYieldFactor,
+    PBFactor,
+    PEFactor,
+    PEGFactor,
+    PSFactor,
 )
-from yinzi.kalman_weight import KalmanWeightEstimator
-from yinzi.factor_validator import FactorValidator
-from yinzi.factor_store import FactorStore
-from yinzi.engine import FactorEngine, create_default_engine
+from yinzi.volatility_factors import (
+    BetaFactor,
+    DownsideVolFactor,
+    HistoricalVolFactor,
+    VaRFactor,
+)
 
 __all__ = [
     "FactorBase", "FactorCategory",

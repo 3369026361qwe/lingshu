@@ -18,12 +18,12 @@ Usage:
 """
 
 from shuju.akshare_fetcher import AKShareFetcher
-from shuju.tushare_fetcher import TushareFetcher
+from shuju.cache_manager import DataCacheManager
+from shuju.data_aligner import DataAligner
+from shuju.data_preprocessor import DataPreprocessor
 from shuju.news_fetcher import NewsFetcher
 from shuju.sentiment_fetcher import SentimentFetcher
-from shuju.data_preprocessor import DataPreprocessor
-from shuju.data_aligner import DataAligner
-from shuju.cache_manager import DataCacheManager
+from shuju.tushare_fetcher import TushareFetcher
 
 __all__ = [
     "AKShareFetcher",

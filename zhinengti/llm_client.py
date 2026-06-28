@@ -17,8 +17,7 @@ import json
 import logging
 import os
 import re
-import time
-from typing import Any, Optional, Protocol
+from typing import Protocol
 
 _logger = logging.getLogger(__name__)
 
@@ -32,7 +31,7 @@ class LLMClient(Protocol):
 class MockLLMClient:
     """Mock 客户端：返回预设响应（测试用）。"""
 
-    def __init__(self, responses: Optional[dict[str, str]] = None):
+    def __init__(self, responses: dict[str, str] | None = None):
         self._responses = responses or {}
         self._call_count = 0
 
@@ -146,7 +145,7 @@ class LocalQwenClient:
 
 # ── 工厂函数 ──────────────────────────────────────────
 
-_client: Optional[LLMClient] = None
+_client: LLMClient | None = None
 
 
 def get_llm_client(backend: str = "") -> LLMClient:

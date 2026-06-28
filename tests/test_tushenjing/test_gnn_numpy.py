@@ -10,18 +10,17 @@ import numpy as np
 import pytest
 
 from tushenjing.gnn_numpy import (
-    NumPyGCN,
     NumPyGAT,
+    NumPyGCN,
+    _extract_attention_param,
+    _map_pyg_gat_to_numpy,
+    _map_pyg_gcn_to_numpy,
+    _map_pyg_to_numpy,
+    _resolve_lin_key,
     _xavier_init,
     _xavier_init_stack,
-    _map_pyg_to_numpy,
-    _map_pyg_gcn_to_numpy,
-    _map_pyg_gat_to_numpy,
-    _resolve_lin_key,
-    _extract_attention_param,
     load_pyg_checkpoint_to_numpy,
 )
-
 
 # ── Xavier 初始化测试 ─────────────────────────────────────
 
@@ -114,7 +113,7 @@ class TestNumPyGCN:
         x = np.random.RandomState(2).randn(N, 4).astype(np.float32)
         adj_eye = np.eye(N, dtype=np.float32)
         adj_full = np.ones((N, N), dtype=np.float32) / N
-        out_eye = gcn.forward(x, adj_eye)
+        gcn.forward(x, adj_eye)
         out_full = gcn.forward(x, adj_full)
         # 即使邻接矩阵不同，输出应该不同（除非巧合）
         # 但不强求完全不同 — 只需要形状正确且数值有效
@@ -167,7 +166,6 @@ class TestNumPyGAT:
 
     def test_heads_produce_different_attention(self):
         """多头产生不同的注意力模式。"""
-        N = 10
         gat = NumPyGAT(in_dim=3, hidden_dim=4, out_dim=1, heads=4, seed=42)
         # 注意: multiple heads means different W_heads
         assert len(gat.W_heads) == 4
@@ -296,7 +294,7 @@ class TestNumpyPyGParity:
                     return self.conv2(x, edge_index)
 
             in_dim, hidden_dim, out_dim = 5, 8, 1
-            pyg_model = PyGGCN(in_dim, hidden_dim, out_dim)
+            PyGGCN(in_dim, hidden_dim, out_dim)
             np_model = NumPyGCN(in_dim, hidden_dim, out_dim, seed=42)
 
             # 随机输入

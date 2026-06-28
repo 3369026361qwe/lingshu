@@ -8,17 +8,15 @@ import argparse
 import json
 import time
 from collections import defaultdict
-from pathlib import Path
 from math import sqrt
+from pathlib import Path
 from statistics import mean, stdev
 
-import numpy as np
 import torch
-
 from dotenv import load_dotenv
+
 load_dotenv(Path('E:/28721/lingshu/.env'))
 
-from huice.backtest_engine import DBBacktestRunner
 from tushenjing.graph_inference import load_gnn_checkpoint, run_gnn_inference
 
 BASE = Path('E:/28721/lingshu/data')
@@ -101,7 +99,7 @@ def backtest_with_metrics(scores_by_date, label, close_map, all_dates_ordered,
     tr = (fv_mv - capital) / capital * 100
     ny = len(rets) / 252
     ar = ((fv_mv / capital) ** (1 / ny) - 1) * 100 if ny > 0 else 0
-    mu = mean(rets)
+    mean(rets)
     sg = stdev(rets) if len(rets) > 1 else 0.01
     av = sg * sqrt(252) * 100
     sh = (ar - 2.5) / av if av > 0 else 0
@@ -205,7 +203,7 @@ def backtest_with_risk(scores_by_date, label, close_map, all_dates_ordered,
     tr = (fv_mv - capital) / capital * 100
     ny = len(rets) / 252
     ar = ((fv_mv / capital) ** (1 / ny) - 1) * 100 if ny > 0 else 0
-    mu = mean(rets)
+    mean(rets)
     sg = stdev(rets) if len(rets) > 1 else 0.01
     av = sg * sqrt(252) * 100
     sh = (ar - 2.5) / av if av > 0 else 0
@@ -238,8 +236,9 @@ def main():
     print(f'  全周期回测 | TopN={args.top_n} Freq={args.freq}d | {DEVICE}')
     print('=' * 60)
 
-    from shujuku.session import SessionContext
     from sqlalchemy import text
+
+    from shujuku.session import SessionContext
 
     # 1 ── 加载数据 ──
     print('\n[1/4] Loading...')
@@ -282,7 +281,7 @@ def main():
         gnn_scores = run_gnn_inference(ckpt, factor_by_date, str(DEVICE))
         print(f'  {ckpt["model_type"]} | {len(gnn_scores)} dates ({time.time() - t0:.1f}s)')
     else:
-        print(f'  No GNN model')
+        print('  No GNN model')
 
     # 3 ── 策略回测 ──
     print('[3/4] Running backtests...')
@@ -303,7 +302,7 @@ def main():
 
     # Agent proxy: 市场动量信号
     agent_signals = {}
-    for di, td in enumerate(test_dates):
+    for _di, td in enumerate(test_dates):
         mdi = date_index.get(td, -1)
         if mdi >= 20:
             ret_20d = 0
@@ -342,7 +341,7 @@ def main():
     print(f'  Agent avg signal: {mean(agent_signals.values()):.3f}')
 
     # 4 ── 风控回测 ──
-    print(f'\n[4/4] Risk-managed backtest...')
+    print('\n[4/4] Risk-managed backtest...')
     r_risk, risk_events = backtest_with_risk(
         factor_scores, 'Factor + 风控', close_map, all_dates, args.top_n, args.freq, args.capital
     )
@@ -365,7 +364,7 @@ def main():
 
     # ── 报告 ──
     print(f'\n{"=" * 60}')
-    print(f'  全周期回测报告')
+    print('  全周期回测报告')
     print(f'{"=" * 60}')
     print(f'  {"Strategy":25s} {"Return":>8s} {"Sharpe":>8s} {"MaxDD":>8s} {"Vol":>8s} {"Win%":>7s} {"Days":>6s}')
     print(f'  {"-" * 65}')
@@ -376,7 +375,7 @@ def main():
     # Annual
     r_full = [r for r in results if '全周期' in r['label'] and '风控' not in r['label']]
     if r_full and r_full[0].get('annual'):
-        print(f'\n  ── 年度收益 ──')
+        print('\n  ── 年度收益 ──')
         for yr in sorted(r_full[0]['annual'].keys()):
             ret, n = r_full[0]['annual'][yr]
             bar = ('+' if ret > 0 else '') + '█' * int(abs(ret) / 5)
@@ -386,7 +385,7 @@ def main():
     if r_full and r_full[0].get('rolling_sharpes'):
         rs = r_full[0]['rolling_sharpes']
         if rs:
-            print(f'\n  ── 滚动夏普(60期) ──')
+            print('\n  ── 滚动夏普(60期) ──')
             print(f'    Mean: {mean(rs):.2f} | Max: {max(rs):.2f} | Min: {min(rs):.2f} | Final: {rs[-1]:.2f}')
 
     # Save
@@ -394,7 +393,7 @@ def main():
         [{k: v for k, v in r.items() if k not in ('rolling_sharpes', 'annual')} for r in results],
         open(BASE / 'full_period_report.json', 'w'), indent=2, default=str
     )
-    print(f'\n  Report saved')
+    print('\n  Report saved')
 
     print(f'{"=" * 60}')
     print('  全周期回测 + 风控完成')

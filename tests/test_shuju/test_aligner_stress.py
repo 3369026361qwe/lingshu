@@ -81,7 +81,7 @@ class TestAlignerStress:
         result = aligner.financial_to_daily(financials, trade_dates)
         assert len(result) == 3
         # 每只股票填充的报告期应一致
-        for code, daily in result.items():
+        for _code, daily in result.items():
             assert len(daily) > 0
 
     def test_no_reports_before_first_trade_date(self):

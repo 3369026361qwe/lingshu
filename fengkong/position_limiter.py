@@ -1,6 +1,5 @@
 """仓位限制器 — L2 防护层。单票≤10% | 单行业≤30% | 总仓位≤95%。"""
 from decimal import Decimal
-from typing import Optional
 
 
 class PositionLimiter:
@@ -11,7 +10,7 @@ class PositionLimiter:
         self.max_industry = max_industry
         self.max_total = max_total
 
-    def check(self, portfolio: list[dict], industry_map: Optional[dict[str, str]] = None) -> dict:
+    def check(self, portfolio: list[dict], industry_map: dict[str, str] | None = None) -> dict:
         """检查组合是否合规。
 
         Returns:
@@ -39,7 +38,7 @@ class PositionLimiter:
 
         return {"passed": len(violations) == 0, "violations": violations, "advice": "合规" if not violations else f"{len(violations)}项违规"}
 
-    def calc_kelly(self, win_rate: Decimal, avg_win: Decimal, avg_loss: Decimal) -> Optional[Decimal]:
+    def calc_kelly(self, win_rate: Decimal, avg_win: Decimal, avg_loss: Decimal) -> Decimal | None:
         """凯利公式: f = p - q / (W/L)。"""
         if avg_loss == 0:
             return None

@@ -5,11 +5,11 @@
 import time
 from decimal import Decimal
 
-from yinzi.value_factors import PEFactor, PEGFactor
-from yinzi.momentum_factors import Momentum1MFactor
-from yinzi.volatility_factors import HistoricalVolFactor, BetaFactor, VaRFactor
+from yinzi.engine import create_default_engine
 from yinzi.factor_validator import FactorValidator
-from yinzi.engine import FactorEngine, create_default_engine
+from yinzi.momentum_factors import Momentum1MFactor
+from yinzi.value_factors import PEFactor, PEGFactor
+from yinzi.volatility_factors import HistoricalVolFactor
 
 
 class TestEdgeCases:

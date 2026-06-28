@@ -1,6 +1,5 @@
 """测试 juece/lambda_rank.py — 决策层 LambdaRank 排序损失。"""
 import numpy as np
-import pytest
 
 from juece.lambda_rank import LambdaRankLoss
 

@@ -21,13 +21,12 @@ Usage:
 """
 import logging
 from collections import defaultdict
-from decimal import Decimal
-from math import isnan, isinf
+from math import isinf, isnan
 from statistics import mean, stdev
-from typing import Optional
+
+from sqlalchemy import text
 
 from shujuku.session import SessionContext
-from sqlalchemy import text
 
 _logger = logging.getLogger(__name__)
 
@@ -128,7 +127,6 @@ class FactorFusion:
         向后兼容旧的 FactorFusion(use_db_weights=True) 调用：
             ff = FactorFusion.from_db()
         """
-        from sqlalchemy import text
 
         try:
             with SessionContext() as s:
@@ -145,7 +143,7 @@ class FactorFusion:
             return cls(min_valid_factors=min_valid_factors)
 
         factor_stats = {}
-        for fn, mic, n in rows:
+        for fn, mic, _n in rows:
             mic_f = float(mic)
             factor_stats[fn] = {
                 'dir': +1 if mic_f > 0 else -1,
@@ -176,7 +174,7 @@ class FactorFusion:
     def compute(
         self,
         factor_values: dict[str, dict[str, float]],  # {factor_name: {code: value}}
-        industry_map: Optional[dict[str, str]] = None,  # {code: industry}
+        industry_map: dict[str, str] | None = None,  # {code: industry}
         do_industry_neutralize: bool = True,
     ) -> dict[str, float]:
         """计算全市场综合得分。
@@ -273,8 +271,8 @@ class FactorFusion:
 
             # 行业内 Z-Score
             neutralized = {}
-            for ind, pairs in groups.items():
-                codes_in_group = [p[0] for p in pairs]
+            for _ind, pairs in groups.items():
+                codes_in_group = [p[0] for p in pairs]  # noqa: F841
                 vals_in_group = [p[1] for p in pairs]
                 if len(vals_in_group) < 3:
                     # 行业太小，保持原值

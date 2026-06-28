@@ -17,9 +17,9 @@ Usage:
     from tushenjing import GraphBuilder, GATModel, GraphInference
 """
 
-from tushenjing.graph_utils import GraphUtils
+from tushenjing.gnn_model import GATModel, GCNModel, create_model
 from tushenjing.graph_builder import GraphBuilder
-from tushenjing.gnn_model import GCNModel, GATModel, create_model
+from tushenjing.graph_utils import GraphUtils
 
 __all__ = [
     "GraphUtils", "GraphBuilder",

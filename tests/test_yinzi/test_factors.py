@@ -4,25 +4,32 @@
 
 from decimal import Decimal
 
-import pytest
-
-from yinzi.value_factors import PEFactor, PBFactor, PSFactor, FCFYieldFactor, PEGFactor
-from yinzi.momentum_factors import (
-    Momentum1MFactor, Momentum3MFactor, Momentum6MFactor, Momentum12M1MFactor, TurnoverMomentumFactor,
-)
-from yinzi.quality_factors import (
-    ROEFactor, ROAFactor, GrossMarginFactor, NetMarginFactor, CashflowToRevenueFactor,
-)
-from yinzi.volatility_factors import (
-    HistoricalVolFactor, DownsideVolFactor, BetaFactor, VaRFactor,
-)
-from yinzi.sentiment_factors import (
-    VolumeRatioFactor, MoneyFlowFactor, TurnoverAnomalyFactor, NorthBoundFactor,
-)
 from yinzi.alternative_factors import (
-    AnalystCoverageFactor, InstitutionalHoldingFactor, ShareholderCountFactor,
+    AnalystCoverageFactor,
+    InstitutionalHoldingFactor,
+    ShareholderCountFactor,
 )
 from yinzi.factor_base import FactorCategory, FactorResult
+from yinzi.momentum_factors import (
+    Momentum1MFactor,
+    Momentum12M1MFactor,
+)
+from yinzi.quality_factors import (
+    CashflowToRevenueFactor,
+    ROEFactor,
+)
+from yinzi.sentiment_factors import (
+    NorthBoundFactor,
+    TurnoverAnomalyFactor,
+    VolumeRatioFactor,
+)
+from yinzi.value_factors import FCFYieldFactor, PBFactor, PEFactor
+from yinzi.volatility_factors import (
+    BetaFactor,
+    DownsideVolFactor,
+    HistoricalVolFactor,
+    VaRFactor,
+)
 
 
 def _make_daily_data(n_days=60, close_prices=None):

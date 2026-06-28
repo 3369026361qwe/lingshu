@@ -2,8 +2,7 @@
 zhinengti 智能体系统 Prometheus 指标。
 """
 
-from prometheus_client import Counter, Gauge, Histogram
-from prometheus_client import REGISTRY
+from prometheus_client import REGISTRY, Counter, Gauge, Histogram
 
 # ── LLM 调用指标 ─────────────────────────────────────
 

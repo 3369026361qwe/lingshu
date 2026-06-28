@@ -5,7 +5,6 @@ Black-Litterman 组合优化器。
 """
 
 from decimal import Decimal
-from typing import Optional
 
 
 class PortfolioOptimizer:
@@ -31,7 +30,7 @@ class PortfolioOptimizer:
     def optimize(
         self,
         picks: list[dict],          # [{code, score, weight}]
-        views: Optional[dict[str, Decimal]] = None,  # {code: expected_return}
+        views: dict[str, Decimal] | None = None,  # {code: expected_return}
         confidence: Decimal = Decimal("0.5"),
     ) -> list[dict]:
         """简化 Black-Litterman 优化。

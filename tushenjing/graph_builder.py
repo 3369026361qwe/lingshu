@@ -16,12 +16,10 @@ A股产业链图构建器。
 import logging
 import random
 import time
-from typing import Optional
 
 import numpy as np
 
-from tushenjing.graph_utils import GraphUtils
-from tushenjing.metrics import graph_build_duration, graph_nodes_total, graph_edges_total
+from tushenjing.metrics import graph_build_duration, graph_edges_total, graph_nodes_total
 
 _logger = logging.getLogger(__name__)
 random.seed(42)
@@ -68,9 +66,9 @@ class GraphBuilder:
     def build(
         self,
         stock_list: list[str],
-        industry_map: Optional[dict[str, str]] = None,
-        fund_holdings: Optional[dict[str, list[str]]] = None,
-        concept_map: Optional[dict[str, list[str]]] = None,
+        industry_map: dict[str, str] | None = None,
+        fund_holdings: dict[str, list[str]] | None = None,
+        concept_map: dict[str, list[str]] | None = None,
     ) -> dict:
         """构建完整异构图。
 
@@ -191,7 +189,7 @@ class GraphBuilder:
 
     def _build_co_holding_edges(self, fund_holdings: dict[str, list[str]]) -> None:
         """共同持仓边：同一基金持有的股票之间建立边。"""
-        for fund_id, codes in fund_holdings.items():
+        for _fund_id, codes in fund_holdings.items():
             valid = [c for c in codes if c in self._node_to_idx]
             for i in range(len(valid)):
                 for j in range(i + 1, len(valid)):
@@ -201,7 +199,7 @@ class GraphBuilder:
 
     def _build_concept_edges(self, concept_map: dict[str, list[str]]) -> None:
         """概念板块边：同一概念板块内的全连接。"""
-        for concept_name, codes in concept_map.items():
+        for _concept_name, codes in concept_map.items():
             valid = [c for c in codes if c in self._node_to_idx]
             for i in range(len(valid)):
                 for j in range(i + 1, len(valid)):
@@ -211,7 +209,7 @@ class GraphBuilder:
 
     # ── 导出 ────────────────────────────────────────────
 
-    def to_adjacency_matrix(self, edge_types: Optional[list[str]] = None) -> np.ndarray:
+    def to_adjacency_matrix(self, edge_types: list[str] | None = None) -> np.ndarray:
         """将指定边类型合并为单一邻接矩阵。"""
         if edge_types is None:
             edge_types = list(self._edges.keys())
@@ -232,7 +230,7 @@ class GraphBuilder:
         # 合并所有边类型
         all_edges = []
         edge_type_list = []
-        for etype_idx, (etype_name, edges) in enumerate(self._edges.items()):
+        for etype_idx, (_etype_name, edges) in enumerate(self._edges.items()):
             for src, dst in edges:
                 all_edges.append([src, dst])
                 edge_type_list.append(etype_idx)

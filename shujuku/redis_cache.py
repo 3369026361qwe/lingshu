@@ -14,10 +14,11 @@ import json
 import logging
 import threading
 import time
-from typing import Any, Optional
+from typing import Any
 
 from shujuku.config import REDIS_URL
-from shujuku.metrics import cache_hits, cache_misses, redis_available as redis_available_gauge, cache_backend_active
+from shujuku.metrics import cache_backend_active, cache_hits, cache_misses
+from shujuku.metrics import redis_available as redis_available_gauge
 
 _logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ class _MemoryStore:
         self._store: dict[str, tuple[float, str]] = {}
         self._lock = threading.Lock()
 
-    def get(self, key: str) -> Optional[str]:
+    def get(self, key: str) -> str | None:
         with self._lock:
             entry = self._store.get(key)
             if entry is None:
@@ -136,7 +137,7 @@ class CacheManager:
 
     # ── 公共接口 ────────────────────────────────────────
 
-    def get(self, key: str) -> Optional[str]:
+    def get(self, key: str) -> str | None:
         """获取缓存值。"""
         full_key = self._full_key(key)
         # Redis 路径
@@ -186,7 +187,7 @@ class CacheManager:
             with self._state_lock:
                 self._try_reconnect()
 
-    def get_json(self, key: str) -> Optional[Any]:
+    def get_json(self, key: str) -> Any | None:
         """获取并解析 JSON 缓存值。"""
         raw = self.get(key)
         if raw is None:

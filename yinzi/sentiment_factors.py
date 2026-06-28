@@ -5,7 +5,6 @@
 """
 
 from decimal import Decimal
-from typing import Optional
 
 from yinzi.factor_base import FactorBase, FactorCategory
 
@@ -17,7 +16,7 @@ class VolumeRatioFactor(FactorBase):
     description = "成交量比 (5日/20日)"
     direction = 0
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         if not daily_data or len(daily_data) < 20:
             return None
         sorted_dates = sorted(daily_data.keys())
@@ -29,7 +28,7 @@ class VolumeRatioFactor(FactorBase):
         return None
 
     @staticmethod
-    def _avg_volume(daily_data: dict, dates: list) -> Optional[Decimal]:
+    def _avg_volume(daily_data: dict, dates: list) -> Decimal | None:
         values = []
         for d in dates:
             v = daily_data[d].get("volume")
@@ -45,7 +44,7 @@ class MoneyFlowFactor(FactorBase):
     description = "资金流向强度"
     direction = 1
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         if not daily_data:
             return None
         sorted_dates = sorted(daily_data.keys())[-5:]  # 近5日
@@ -72,7 +71,7 @@ class TurnoverAnomalyFactor(FactorBase):
     description = "换手率异常 (Z-Score)"
     direction = 0
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         if not daily_data or len(daily_data) < 21:
             return None
         sorted_dates = sorted(daily_data.keys())
@@ -97,7 +96,7 @@ class NorthBoundFactor(FactorBase):
     description = "北向资金净流入变化"
     direction = 1
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         # 北向资金数据需从 shuju 层获取，这里返回 None 表示不可计算
         north_bound_data = kwargs.get("north_bound_data", {})
         if code in north_bound_data:

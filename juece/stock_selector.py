@@ -5,7 +5,6 @@
 """
 
 from decimal import Decimal
-from typing import Optional
 
 
 class StockSelector:
@@ -26,7 +25,7 @@ class StockSelector:
     def generate_signals(
         self,
         composite_scores: dict[str, Decimal],
-        current_positions: Optional[set[str]] = None,
+        current_positions: set[str] | None = None,
     ) -> dict[str, dict]:
         """生成每只股票的买入/持有/卖出信号。
 
@@ -72,8 +71,8 @@ class StockSelector:
     def select_top_n(
         self,
         composite_scores: dict[str, Decimal],
-        exclude: Optional[set[str]] = None,
-        min_score: Optional[Decimal] = None,
+        exclude: set[str] | None = None,
+        min_score: Decimal | None = None,
     ) -> list[dict]:
         """选出 Top-N 推荐股票。
 

@@ -5,7 +5,6 @@
 """
 
 from decimal import Decimal
-from typing import Optional
 
 from yinzi.factor_base import FactorBase, FactorCategory
 
@@ -32,7 +31,7 @@ class HistoricalVolFactor(FactorBase):
     description = "历史波动率 (年化)"
     direction = -1
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         returns = _daily_returns(daily_data)
         if len(returns) < 20:
             return None
@@ -49,7 +48,7 @@ class DownsideVolFactor(FactorBase):
     description = "下行波动率 (年化)"
     direction = -1
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         returns = _daily_returns(daily_data)
         neg_returns = [r for r in returns if r < 0]
         if len(neg_returns) < 10:
@@ -67,7 +66,7 @@ class BetaFactor(FactorBase):
     description = "Beta 系数"
     direction = 0
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         market_data = kwargs.get("market_data", {})
         if not market_data:
             return None
@@ -102,7 +101,7 @@ class VaRFactor(FactorBase):
     description = "历史 VaR (95%)"
     direction = -1
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         returns = _daily_returns(daily_data)
         if len(returns) < 60:
             return None

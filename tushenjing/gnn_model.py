@@ -5,7 +5,6 @@ GNN 模型定义 — GCN / GAT / HGT。
 """
 
 import logging
-from typing import Optional
 
 import numpy as np
 
@@ -22,7 +21,7 @@ except ImportError:
     _logger.warning("PyTorch not available — GNN models will use NumPy fallback")
 
 
-from tushenjing.gnn_numpy import NumPyGCN, NumPyGAT
+from tushenjing.gnn_numpy import NumPyGAT, NumPyGCN
 
 # ── PyG 模型（当 PyTorch 可用时）───────────────────────
 

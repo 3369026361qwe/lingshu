@@ -9,7 +9,7 @@ SQLAlchemy ORM 模型集合。
     fengkong_models  — 熔断事件、风控日志
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone  # noqa: F401 (timezone used in utcnow default; re-exported)
 
 from sqlalchemy.orm import DeclarativeBase
 
@@ -25,34 +25,34 @@ class Base(DeclarativeBase):
 
 
 # 延迟导入模型子模块以确保 Base 已定义
-from shujuku.models.market_models import (  # noqa: E402, F401
-    StockInfo,
-    DailyBar,
-    FinancialReport,
-    IndustryClassification,
-)
-from shujuku.models.yinzi_models import (  # noqa: E402, F401
-    FactorValue,
-    FactorWeight,
-    FactorICRecord,
-)
-from shujuku.models.zhinengti_models import (  # noqa: E402, F401
-    AgentReport,
-    AgentEvidence,
-)
-from shujuku.models.jiaoyi_models import (  # noqa: E402, F401
-    Order,
-    Trade,
-    Position,
-    PortfolioSnapshot,
-)
 from shujuku.models.fengkong_models import (  # noqa: E402, F401
     CircuitBreakerEvent,
     RiskLog,
     VaRRecord,
 )
+from shujuku.models.jiaoyi_models import (  # noqa: E402, F401
+    Order,
+    PortfolioSnapshot,
+    Position,
+    Trade,
+)
 from shujuku.models.juece_models import (  # noqa: E402, F401
     FusionScore,
+)
+from shujuku.models.market_models import (  # noqa: E402, F401
+    DailyBar,
+    FinancialReport,
+    IndustryClassification,
+    StockInfo,
+)
+from shujuku.models.yinzi_models import (  # noqa: E402, F401
+    FactorICRecord,
+    FactorValue,
+    FactorWeight,
+)
+from shujuku.models.zhinengti_models import (  # noqa: E402, F401
+    AgentEvidence,
+    AgentReport,
 )
 
 __all__ = [

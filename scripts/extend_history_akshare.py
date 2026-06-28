@@ -6,16 +6,18 @@ Usage:
     python scripts/extend_history_akshare.py              # 全量
     python scripts/extend_history_akshare.py --sample 100 # 仅100只测试
 """
-import sys, os, time, argparse
-from pathlib import Path
-from datetime import date, timedelta
+import argparse
+import sys
+import time
+from datetime import date
 
 try: sys.stdout.reconfigure(encoding='utf-8')
 except: pass
 
-from shujuku.session import SessionContext
-from sqlalchemy import text
 import akshare as ak
+from sqlalchemy import text
+
+from shujuku.session import SessionContext
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--sample', type=int, default=0, help='仅下载前N只股票（测试用）')
@@ -103,7 +105,7 @@ with SessionContext() as s:
 
         except Exception as e:
             if '每分钟' in str(e) or 'frequency' in str(e).lower():
-                print(f'  频率限制，等待 60s...')
+                print('  频率限制，等待 60s...')
                 time.sleep(60)
                 continue
             continue

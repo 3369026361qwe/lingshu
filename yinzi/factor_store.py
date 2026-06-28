@@ -12,7 +12,6 @@ Usage:
 import logging
 from datetime import date
 from decimal import Decimal
-from typing import Optional
 
 from shujuku.repository import Repository
 from yinzi.factor_base import FactorResult
@@ -68,8 +67,8 @@ class FactorStore:
         code: str,
         factor_map: dict[str, Decimal],  # {factor_name: raw_value}
         category: str = "",
-        z_score_map: Optional[dict[str, Decimal]] = None,
-        percentile_map: Optional[dict[str, Decimal]] = None,
+        z_score_map: dict[str, Decimal] | None = None,
+        percentile_map: dict[str, Decimal] | None = None,
     ) -> int:
         """保存单只股票的全部因子值。
 
@@ -109,7 +108,7 @@ class FactorStore:
         trade_date: date,
         factor_names: list[str],
         weights: list[Decimal],
-        variances: Optional[list[Decimal]] = None,
+        variances: list[Decimal] | None = None,
     ) -> int:
         """批量保存卡尔曼滤波因子权重。
 
@@ -136,7 +135,7 @@ class FactorStore:
         trade_date: date,
         factor_name: str,
         ic: Decimal,
-        ir: Optional[Decimal] = None,
+        ir: Decimal | None = None,
         ic_window: int = 20,
     ) -> None:
         """保存因子 IC 记录。"""

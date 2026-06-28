@@ -20,9 +20,9 @@ async def run_trade_pipeline(top_n: int = Query(default=10, ge=5, le=50)):
     Returns:
         { stocks, portfolio, risk, trades, orders, summary }
     """
-    from juece.stock_selector import StockSelector
-    from juece.portfolio_optimizer import PortfolioOptimizer
     from fengkong.risk_manager import RiskManager
+    from juece.portfolio_optimizer import PortfolioOptimizer
+    from juece.stock_selector import StockSelector
 
     repo = get_repository()
     now = datetime.now(timezone.utc)
@@ -131,7 +131,6 @@ async def run_trade_pipeline(top_n: int = Query(default=10, ge=5, le=50)):
 @router.post("/trade/execute")
 async def execute_trades():
     """执行当前调仓计划（模拟）。"""
-    from zhixing.order_manager import OrderManager
     from zhixing.mock_broker import MockBroker
     from zhixing.trade_recorder import TradeRecorder
 

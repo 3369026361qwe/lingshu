@@ -20,9 +20,7 @@ Usage:
 import logging
 import re
 import time
-from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Optional
 
 from shuju.cache_manager import DataCacheManager
 
@@ -61,7 +59,7 @@ _NEUTRALIZING_PATTERNS = [
 class SentimentFetcher:
     """社交媒体舆情获取器。"""
 
-    def __init__(self, cache: Optional[DataCacheManager] = None, news_fetcher=None) -> None:
+    def __init__(self, cache: DataCacheManager | None = None, news_fetcher=None) -> None:
         self._cache = cache or DataCacheManager()
         self._news_fetcher = news_fetcher  # 依赖注入，避免重复创建
         self._last_request = 0.0
@@ -147,7 +145,7 @@ class SentimentFetcher:
 
     # ── 市场情绪指数 ────────────────────────────────────
 
-    def get_market_sentiment_index(self, sample_codes: Optional[list[str]] = None) -> dict:
+    def get_market_sentiment_index(self, sample_codes: list[str] | None = None) -> dict:
         """计算全市场情绪指数。
 
         Args:

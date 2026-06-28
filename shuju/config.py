@@ -20,8 +20,6 @@ shuju 统一配置。
 import os
 from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import Optional
-
 
 # ── 财务因子字段名 (TushareFetcher 与 DataAligner 共享) ────
 
@@ -86,9 +84,12 @@ class ShujuConfig:
         """从环境变量创建配置，未设置则使用默认值。"""
         kwargs: dict = {}
 
-        _int = lambda k, d: int(os.getenv(k, d))
-        _float = lambda k, d: float(os.getenv(k, d))
-        _str = lambda k, d: os.getenv(k, d)
+        def _int(k, d):
+            return int(os.getenv(k, d))
+        def _float(k, d):
+            return float(os.getenv(k, d))
+        def _str(k, d):
+            return os.getenv(k, d)
 
         kwargs["max_retries"] = _int("SHUJU_MAX_RETRIES", 3)
         kwargs["request_interval"] = _float("SHUJU_REQUEST_INTERVAL", 0.5)
@@ -110,7 +111,7 @@ class ShujuConfig:
 
 # ── 模块级单例 ────────────────────────────────────────────
 
-_config: Optional[ShujuConfig] = None
+_config: ShujuConfig | None = None
 
 
 def get_config() -> ShujuConfig:

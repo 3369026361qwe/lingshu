@@ -19,14 +19,12 @@ Usage:
 
 import logging
 import time
-from datetime import date, datetime
-from decimal import Decimal
-from typing import Any, Optional
+from datetime import date
 
 import pandas as pd
 
 from shuju.cache_manager import DataCacheManager
-from shuju.utils import safe_decimal, make_retry
+from shuju.utils import make_retry, safe_decimal
 
 _logger = logging.getLogger(__name__)
 
@@ -39,7 +37,7 @@ _retry = make_retry("akshare", max_retries=3, logger=_logger)
 class AKShareFetcher:
     """AKShare 行情数据获取器。"""
 
-    def __init__(self, cache: Optional[DataCacheManager] = None) -> None:
+    def __init__(self, cache: DataCacheManager | None = None) -> None:
         self._cache = cache or DataCacheManager()
         self._last_request = 0.0
 
@@ -100,8 +98,8 @@ class AKShareFetcher:
     def get_daily_bars(
         self,
         code: str,
-        start: Optional[str] = None,
-        end: Optional[str] = None,
+        start: str | None = None,
+        end: str | None = None,
         use_cache: bool = True,
     ) -> list[dict]:
         """获取单只股票日线数据。
@@ -159,7 +157,7 @@ class AKShareFetcher:
 
         return result
 
-    def get_market_snapshot(self, trade_date: Optional[str] = None) -> list[dict]:
+    def get_market_snapshot(self, trade_date: str | None = None) -> list[dict]:
         """获取全市场某日行情快照。
 
         优先使用 AKShare 全市场接口（东方财富实时行情），失败时 fallback 到分批并发拉取。

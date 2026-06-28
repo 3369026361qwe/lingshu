@@ -1,5 +1,6 @@
 """参数网格搜索 — 遍历参数组合，记录全部实验结果。"""
 import itertools
+
 from huice.backtest_engine import BacktestEngine
 
 
@@ -25,7 +26,7 @@ class GridSearch:
         results = []
 
         for combo in itertools.product(*values):
-            params = dict(zip(keys, combo))
+            params = dict(zip(keys, combo, strict=False))
             config = {**base_config}
             for k, v in params.items():
                 if hasattr(config.get("signal_generator"), k):
@@ -43,6 +44,13 @@ class GridSearch:
     @staticmethod
     def best_params(results: list[dict]) -> dict:
         """从网格搜索结果中提取最佳参数组合。"""
-        if not results: return {}
+        if not results:
+            return {}
         best = results[0]
-        return {"experiment_id": best["experiment_id"], "params": best.get("grid_params", {}), "sharpe": best.get("metrics", {}).get("sharpe"), "total_return": best.get("metrics", {}).get("total_return")}
+        metrics = best.get("metrics", {})
+        return {
+            "experiment_id": best["experiment_id"],
+            "params": best.get("grid_params", {}),
+            "sharpe": metrics.get("sharpe"),
+            "total_return": metrics.get("total_return"),
+        }

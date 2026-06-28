@@ -15,7 +15,6 @@ Usage:
 
 import numpy as np
 
-
 # ── 初始化工具 ─────────────────────────────────────────
 
 def _xavier_init(fan_in: int, fan_out: int, shape: tuple, rng: np.random.RandomState) -> np.ndarray:
@@ -182,7 +181,6 @@ def load_pyg_checkpoint_to_numpy(checkpoint_path: str) -> dict:
         {model_type, state_dict, features, stock_codes, ...}
         或空 dict (转换失败时)
     """
-    import json
     from pathlib import Path
 
     if not Path(checkpoint_path).exists():

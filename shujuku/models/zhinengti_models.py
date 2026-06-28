@@ -8,7 +8,7 @@ AgentOutput 通信协议映射到 AgentReport + AgentEvidence 两张表。
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, Numeric, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from shujuku.models import Base, utcnow

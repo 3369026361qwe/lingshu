@@ -1,5 +1,6 @@
 """zhixing 交易执行 Prometheus 指标。"""
-from prometheus_client import Counter, Gauge, Histogram, REGISTRY
+from prometheus_client import REGISTRY, Counter
+
 orders_created = Counter("lingshu_orders_created_total", "Orders created", ["direction"], registry=REGISTRY)
 orders_filled = Counter("lingshu_orders_filled_total", "Orders filled", ["direction"], registry=REGISTRY)
 orders_rejected = Counter("lingshu_orders_rejected_total", "Orders rejected", registry=REGISTRY)

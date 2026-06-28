@@ -20,11 +20,8 @@ Usage:
 
 import logging
 from decimal import Decimal
-from typing import Optional
 
-import logging
-
-from yinzi.metrics import kalman_update_total, kalman_converged, kalman_max_variance
+from yinzi.metrics import kalman_converged, kalman_max_variance, kalman_update_total
 
 _logger = logging.getLogger(__name__)
 
@@ -163,7 +160,7 @@ class KalmanWeightEstimator:
             self.update(factor_matrix[t], returns[t])
         return list(self._weights)
 
-    def is_converged(self, tolerance: Optional[Decimal] = None) -> bool:
+    def is_converged(self, tolerance: Decimal | None = None) -> bool:
         """判断权重是否收敛 (方差下降到过程噪声的 10 倍以内)。"""
         if self._update_count < 20:
             return False

@@ -1,12 +1,16 @@
 """搜索最优融合权重 (Factor/GNN/Agent) — 使用真实 GAT 模型"""
-import sys, os, json, time
-from pathlib import Path
+import sys
+import time
 from collections import defaultdict
-from math import sqrt, isnan
+from math import isnan, sqrt
+from pathlib import Path
 from statistics import mean, stdev
+
 import numpy as np
-import torch, torch.nn.functional as F
+import torch
+import torch.nn.functional as F
 from dotenv import load_dotenv
+
 load_dotenv(Path('E:/28721/lingshu/.env'))
 sys.stdout.reconfigure(encoding='utf-8')
 
@@ -20,8 +24,10 @@ print('=' * 60)
 
 # 1. Load
 print('[1/4] Loading...'); t0 = time.time()
-from shujuku.session import SessionContext
 from sqlalchemy import text
+
+from shujuku.session import SessionContext
+
 with SessionContext() as s:
     pr = s.execute(text('SELECT code,trade_date,close FROM daily_bar ORDER BY code,trade_date')).fetchall()
     fs = s.execute(text('SELECT trade_date,code,composite_score FROM fusion_score ORDER BY trade_date,code')).fetchall()
@@ -131,7 +137,7 @@ def run_bt(scores_by_date):
     if not rets: return None
     fv_mv = pv[-1]; tr = (fv_mv-CAPITAL)/CAPITAL*100
     ny = len(rets)/252; ar = ((fv_mv/CAPITAL)**(1/ny)-1)*100 if ny>0 else 0
-    mu = mean(rets); sg = stdev(rets) if len(rets)>1 else 0.01
+    mean(rets); sg = stdev(rets) if len(rets)>1 else 0.01
     av = sg*sqrt(252)*100; sh = (ar-2.5)/av if av>0 else 0
     pk = CAPITAL; dd = 0
     for mv in pv:
@@ -166,7 +172,7 @@ r_f = run_bt({td: fn_norm[td] for td in test_dates if td in fn_norm})
 r_g = run_bt({td: gn_norm[td] for td in test_dates if td in gn_norm})
 cur = [c for c in combos if c['fw']==0.5 and c['gw']==0.3]
 
-print(f'\n[4/4] Summary')
+print('\n[4/4] Summary')
 print(f'  Factor-only:       Sharpe={r_f["sharpe"]:.3f} Ret={r_f["ret"]:+.1f}% DD={r_f["dd"]:.1f}%')
 print(f'  GNN-only:          Sharpe={r_g["sharpe"]:.3f} Ret={r_g["ret"]:+.1f}% DD={r_g["dd"]:.1f}%')
 print(f'  Current(50/30/20): Sharpe={cur[0]["sharpe"]:.3f} Ret={cur[0]["ret"]:+.1f}% DD={cur[0]["dd"]:.1f}%' if cur else '  Current: N/A')

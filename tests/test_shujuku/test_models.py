@@ -11,14 +11,12 @@ import sqlalchemy.exc
 from sqlalchemy import text
 
 from shujuku.models import utcnow
-
-from shujuku.session import init_db, SessionContext
-from shujuku.models.market_models import StockInfo, DailyBar, FinancialReport, IndustryClassification
-from shujuku.models.yinzi_models import FactorValue, FactorWeight, FactorICRecord
-from shujuku.models.zhinengti_models import AgentReport, AgentEvidence
-from shujuku.models.jiaoyi_models import Order, Trade, Position, PortfolioSnapshot
 from shujuku.models.fengkong_models import CircuitBreakerEvent, RiskLog, VaRRecord
-from shujuku.models.yinzi_models import FactorICRecord
+from shujuku.models.jiaoyi_models import Order, PortfolioSnapshot, Position, Trade
+from shujuku.models.market_models import DailyBar, FinancialReport, IndustryClassification, StockInfo
+from shujuku.models.yinzi_models import FactorICRecord, FactorValue, FactorWeight
+from shujuku.models.zhinengti_models import AgentEvidence, AgentReport
+from shujuku.session import SessionContext, init_db
 
 
 @pytest.fixture(autouse=True)

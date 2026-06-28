@@ -4,14 +4,15 @@
 使用 huice.backtest_engine.DBBacktestRunner + ProcessPoolExecutor。
 """
 import argparse
-import time
 import os
+import time
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-from shujuku.session import SessionContext
 from sqlalchemy import text
+
 from huice.backtest_engine import DBBacktestRunner
+from shujuku.session import SessionContext
 
 TOP_N_VALUES = [10, 20, 30, 40, 50]
 FREQ_VALUES = [5, 10, 20, 40, 60]
@@ -57,7 +58,7 @@ def main():
         fusion_rows = s.execute(text(
             'SELECT trade_date, code, composite_score FROM fusion_score ORDER BY trade_date, code'
         )).fetchall()
-        price_rows = s.execute(text(
+        s.execute(text(
             'SELECT code, trade_date, close FROM daily_bar ORDER BY code, trade_date'
         )).fetchall()
 
@@ -101,7 +102,7 @@ def main():
 
     # 3 ── 报告 ──
     print(f'\n{"=" * 65}')
-    print(f'  网格搜索 — Final Report')
+    print('  网格搜索 — Final Report')
     print(f'{"=" * 65}')
     print(f'  {"TopN":>5s} {"Freq":>5s} {"Sharpe":>8s} {"Return":>8s} {"MaxDD":>8s}')
     top = sorted(grid_results, key=lambda x: x['sharpe'], reverse=True)[:10]

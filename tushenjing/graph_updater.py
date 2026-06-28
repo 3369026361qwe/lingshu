@@ -5,7 +5,6 @@
 """
 
 import logging
-from typing import Optional
 
 import numpy as np
 
@@ -97,7 +96,7 @@ class GraphUpdater:
     def update_features(
         graph_data: dict,
         factor_data: dict[str, dict],
-        feature_order: Optional[list[str]] = None,
+        feature_order: list[str] | None = None,
     ) -> np.ndarray:
         """更新节点特征矩阵。
 

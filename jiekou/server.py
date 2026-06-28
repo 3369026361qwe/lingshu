@@ -3,24 +3,23 @@ import asyncio
 import logging
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone, date
-from decimal import Decimal
-from statistics import mean
-
+from datetime import date, datetime, timezone
 from pathlib import Path
+from statistics import mean
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse, HTMLResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from jiekou.dependencies import get_repository
-from jiekou.routes.selection_routes import router as selection_router
-from jiekou.routes.agent_routes import router as agent_router, ws_router as agent_ws_router
-from jiekou.routes.portfolio_routes import router as portfolio_router
-from jiekou.routes.risk_routes import router as risk_router, ws_router as risk_ws_router
-from jiekou.routes.huice_routes import router as huice_router
+from jiekou.routes.agent_routes import router as agent_router
+from jiekou.routes.agent_routes import ws_router as agent_ws_router
 from jiekou.routes.gnn_routes import router as gnn_router
+from jiekou.routes.huice_routes import router as huice_router
+from jiekou.routes.portfolio_routes import router as portfolio_router
+from jiekou.routes.risk_routes import router as risk_router
+from jiekou.routes.risk_routes import ws_router as risk_ws_router
+from jiekou.routes.selection_routes import router as selection_router
 from jiekou.routes.trade_routes import router as trade_router
 
 _logger = logging.getLogger(__name__)
@@ -136,7 +135,7 @@ async def _refresh_market_cache() -> None:
 
         # 全市场平均涨跌幅
         changes = []
-        for code, close, prev_close, _vol in rows:
+        for _code, close, prev_close, _vol in rows:
             try:
                 c, pc = float(str(close)), float(str(prev_close))
                 if pc > 0:
@@ -227,7 +226,7 @@ async def get_daily_bars(code: str, start: str = "20260101", end: str = "2026063
 @app.get("/api/metrics")
 async def prometheus_metrics():
     """Prometheus 指标导出。"""
-    from prometheus_client import REGISTRY, generate_latest
+    from prometheus_client import generate_latest
     return JSONResponse(generate_latest().decode(), media_type="text/plain")
 
 
@@ -267,7 +266,7 @@ async def _daily_pipeline_loop():
         return
     while True:
         now = datetime.now(timezone.utc)
-        # 北京时间 = UTC+8
+        # 北京时间 = timezone.utc+8
         bj_hour = (now.hour + 8) % 24
         bj_minute = now.minute
         # 计算距离下一个 15:30 的秒数

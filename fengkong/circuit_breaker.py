@@ -1,11 +1,11 @@
 """三态熔断器 — L1 防护层。CLOSED ↔ OPEN ↔ HALF_OPEN 自动切换。"""
 import time as _time
 from datetime import datetime, timezone
-from enum import Enum
 from decimal import Decimal
+from enum import Enum
 
 
-class BreakerState(str, Enum):
+class BreakerState(str, Enum):  # noqa: UP042
     CLOSED = "CLOSED"         # 正常
     OPEN = "OPEN"             # 熔断
     HALF_OPEN = "HALF_OPEN"   # 半开（试探恢复）

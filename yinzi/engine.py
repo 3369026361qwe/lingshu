@@ -12,7 +12,6 @@ Usage:
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Optional
 
 from yinzi.factor_base import FactorBase, FactorResult
 from yinzi.metrics import factor_batch_duration
@@ -54,7 +53,7 @@ class FactorEngine:
         self,
         stock_list: list[str],
         daily_data_map: dict[str, dict],
-        financial_data_map: Optional[dict[str, dict]] = None,
+        financial_data_map: dict[str, dict] | None = None,
         parallel: bool = True,
     ) -> list[FactorResult]:
         """计算全部已注册因子。
@@ -83,7 +82,7 @@ class FactorEngine:
         category: str,
         stock_list: list[str],
         daily_data_map: dict[str, dict],
-        financial_data_map: Optional[dict[str, dict]] = None,
+        financial_data_map: dict[str, dict] | None = None,
     ) -> list[FactorResult]:
         """计算指定类别的因子。"""
         factors = self.get_factors_by_category(category)
@@ -102,7 +101,7 @@ class FactorEngine:
         factor: FactorBase,
         stock_list: list[str],
         daily_data_map: dict[str, dict],
-        financial_data_map: Optional[dict[str, dict]] = None,
+        financial_data_map: dict[str, dict] | None = None,
     ) -> list[FactorResult]:
         """计算单个因子。根据因子能力选择向量化或普通路径。"""
         if factor.supports_vectorized():
@@ -113,7 +112,7 @@ class FactorEngine:
         self,
         stock_list: list[str],
         daily_data_map: dict[str, dict],
-        financial_data_map: Optional[dict[str, dict]] = None,
+        financial_data_map: dict[str, dict] | None = None,
     ) -> list[FactorResult]:
         """串行计算所有因子。"""
         results = []
@@ -125,7 +124,7 @@ class FactorEngine:
         self,
         stock_list: list[str],
         daily_data_map: dict[str, dict],
-        financial_data_map: Optional[dict[str, dict]] = None,
+        financial_data_map: dict[str, dict] | None = None,
     ) -> list[FactorResult]:
         """因子级别并行计算。"""
         results = []
@@ -150,22 +149,37 @@ class FactorEngine:
 
 def create_default_engine(max_workers: int = 8) -> FactorEngine:
     """创建包含全部 21 个因子的预配置引擎。"""
-    from yinzi.value_factors import PEFactor, PBFactor, PSFactor, FCFYieldFactor, PEGFactor
+    from yinzi.alternative_factors import (
+        AnalystCoverageFactor,
+        InstitutionalHoldingFactor,
+        ShareholderCountFactor,
+    )
     from yinzi.momentum_factors import (
-        Momentum1MFactor, Momentum3MFactor, Momentum6MFactor,
-        Momentum12M1MFactor, TurnoverMomentumFactor,
+        Momentum1MFactor,
+        Momentum3MFactor,
+        Momentum6MFactor,
+        Momentum12M1MFactor,
+        TurnoverMomentumFactor,
     )
     from yinzi.quality_factors import (
-        ROEFactor, ROAFactor, GrossMarginFactor, NetMarginFactor, CashflowToRevenueFactor,
-    )
-    from yinzi.volatility_factors import (
-        HistoricalVolFactor, DownsideVolFactor, BetaFactor, VaRFactor,
+        CashflowToRevenueFactor,
+        GrossMarginFactor,
+        NetMarginFactor,
+        ROAFactor,
+        ROEFactor,
     )
     from yinzi.sentiment_factors import (
-        VolumeRatioFactor, MoneyFlowFactor, TurnoverAnomalyFactor, NorthBoundFactor,
+        MoneyFlowFactor,
+        NorthBoundFactor,
+        TurnoverAnomalyFactor,
+        VolumeRatioFactor,
     )
-    from yinzi.alternative_factors import (
-        AnalystCoverageFactor, InstitutionalHoldingFactor, ShareholderCountFactor,
+    from yinzi.value_factors import FCFYieldFactor, PBFactor, PEFactor, PEGFactor, PSFactor
+    from yinzi.volatility_factors import (
+        BetaFactor,
+        DownsideVolFactor,
+        HistoricalVolFactor,
+        VaRFactor,
     )
 
     engine = FactorEngine(max_workers=max_workers)

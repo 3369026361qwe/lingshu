@@ -15,7 +15,6 @@ Agent 共享工具集。
 import logging
 from datetime import date
 from decimal import Decimal
-from typing import Any, Optional
 
 _logger = logging.getLogger(__name__)
 
@@ -77,11 +76,11 @@ class AgentToolkit:
 
     # ── 因子查询 ────────────────────────────────────────
 
-    def query_factor_values(self, code: str, factor_names: Optional[list[str]] = None) -> dict[str, Decimal]:
+    def query_factor_values(self, code: str, factor_names: list[str] | None = None) -> dict[str, Decimal]:
         """查询股票最新因子值。"""
         try:
-            from shujuku.session import SessionContext
             from shujuku.repository import Repository
+            from shujuku.session import SessionContext
 
             if factor_names is None:
                 factor_names = ["pe", "momentum_1m", "roe", "historical_vol"]
@@ -117,7 +116,7 @@ class AgentToolkit:
 
     # ── 情绪查询 ────────────────────────────────────────
 
-    def get_market_sentiment(self, sample_codes: Optional[list[str]] = None) -> dict:
+    def get_market_sentiment(self, sample_codes: list[str] | None = None) -> dict:
         """获取全市场情绪指数。"""
         try:
             from shuju.sentiment_fetcher import SentimentFetcher

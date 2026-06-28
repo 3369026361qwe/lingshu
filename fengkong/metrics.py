@@ -1,5 +1,6 @@
 """fengkong 风控模块 Prometheus 指标。"""
-from prometheus_client import Counter, Gauge, Histogram, REGISTRY
+from prometheus_client import REGISTRY, Counter, Gauge
+
 breaker_state = Gauge("lingshu_breaker_state", "Circuit breaker state (0=CLOSED,1=OPEN,2=HALF_OPEN)", registry=REGISTRY)
 breaker_transitions = Counter("lingshu_breaker_transitions_total", "Breaker state transitions", ["from_state","to_state"], registry=REGISTRY)
 rate_limiter_blocks = Counter("lingshu_rate_limiter_blocks_total", "Rate limiter blocked requests", registry=REGISTRY)

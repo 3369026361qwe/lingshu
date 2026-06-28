@@ -5,12 +5,12 @@ shuju 共享工具函数。
 """
 
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any
 
 import pandas as pd
 
 
-def safe_decimal(value: Any) -> Optional[Decimal]:
+def safe_decimal(value: Any) -> Decimal | None:
     """安全转换数值为 Decimal（处理 NaN/None/非数值字符串）。
 
     AKShareFetcher._to_decimal 和 TushareFetcher._safe_decimal 的统一实现。
@@ -44,7 +44,8 @@ def make_retry(source_name: str, max_retries: int = 3, logger=None):
     """
     import functools
     import time as _time
-    from shuju.metrics import fetcher_requests_total, fetcher_latency, fetcher_retries_total
+
+    from shuju.metrics import fetcher_latency, fetcher_requests_total, fetcher_retries_total
 
     def retry(func):
         @functools.wraps(func)

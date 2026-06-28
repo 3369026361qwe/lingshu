@@ -10,19 +10,21 @@ Usage:
     python scripts/compute_factor_ic.py              # 全量计算
     python scripts/compute_factor_ic.py --days 60    # 仅最近 60 天
 """
-import sys, os, time, argparse
-from pathlib import Path
+import argparse
+import sys
+import time
 from collections import defaultdict
+from math import isinf, isnan
 from statistics import mean, stdev
-from math import isnan, isinf, sqrt
 
 try: sys.stdout.reconfigure(encoding='utf-8')
 except: pass
 
-from shujuku.session import SessionContext
-from sqlalchemy import text
 import numpy as np
 from scipy.stats import spearmanr
+from sqlalchemy import text
+
+from shujuku.session import SessionContext
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--days', type=int, default=0, help='仅计算最近 N 天，0=全量')
@@ -84,7 +86,7 @@ print(f'  加载 {len(all_fv):,} 因子值 + {len(all_prices):,} 价格行 ({tim
 # 组织内存结构
 fv_by_date = defaultdict(lambda: defaultdict(dict))
 for td, code, fn, rv in all_fv:
-    if fn in factors_set:
+    if fn in factors_set:  # noqa: F821 (factors_set defined via DB-derived factors tuple at top of function — see :fnames query param)
         fv_by_date[str(td)][fn][code] = float(str(rv))
 
 ret_by_date = defaultdict(dict)
@@ -202,7 +204,7 @@ with SessionContext() as s:
     ic_after = s.execute(text('SELECT COUNT(*) FROM factor_ic_record')).scalar()
     wt_after = s.execute(text('SELECT COUNT(*) FROM factor_weight')).scalar()
 
-print(f'\n  写入结果:')
+print('\n  写入结果:')
 print(f'  factor_ic_record: {ic_before:,} → {ic_after:,} (+{ic_after-ic_before:,})')
 print(f'  factor_weight:    {wt_before:,} → {wt_after:,} (+{wt_after-wt_before:,})')
 

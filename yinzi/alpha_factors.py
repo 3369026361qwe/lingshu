@@ -1,8 +1,9 @@
 """Alpha因子（借鉴THU-BDC2026的158个Alpha特征体系）。纯numpy实现。"""
-import numpy as np
 from decimal import Decimal
-from typing import Optional
-from yinzi.factor_base import FactorBase, FactorCategory, FactorResult
+
+import numpy as np
+
+from yinzi.factor_base import FactorBase, FactorCategory
 
 
 class _AlphaBase(FactorBase):
@@ -17,7 +18,7 @@ class _AlphaBase(FactorBase):
         return result
 
     @staticmethod
-    def _to_d(value) -> Optional[Decimal]:
+    def _to_d(value) -> Decimal | None:
         if value is None or (isinstance(value, float) and np.isnan(value)):
             return None
         return Decimal(str(round(float(value), 6)))

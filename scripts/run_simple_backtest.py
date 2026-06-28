@@ -6,6 +6,7 @@ Strategy: 等权持有 Top 20 选股，40 天调仓一次。
 """
 import argparse
 import time
+
 from huice.backtest_engine import DBBacktestRunner
 
 # ── 默认参数 ──────────────────────────────────────────

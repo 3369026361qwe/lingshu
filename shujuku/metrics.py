@@ -10,7 +10,7 @@ Usage:
     db_ops_total.labels(operation="insert", table="factor_value").inc()
 """
 
-from prometheus_client import Counter, Gauge, Histogram, Info, CollectorRegistry, REGISTRY
+from prometheus_client import REGISTRY, Counter, Gauge, Histogram, Info
 
 # ── 数据库操作指标 ─────────────────────────────────────
 

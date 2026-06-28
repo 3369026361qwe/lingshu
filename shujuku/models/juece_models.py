@@ -1,8 +1,7 @@
 """决策引擎相关 ORM 模型 — 融合分数、选股信号等。"""
 
-from datetime import datetime, timezone
 
-from sqlalchemy import Column, Date, Float, Index, Integer, String, DateTime
+from sqlalchemy import Column, Date, DateTime, Float, Index, Integer, String
 
 from shujuku.models import Base, utcnow
 

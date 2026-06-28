@@ -46,7 +46,7 @@ class TestMetricsRegistration:
         assert len(samples) > 0
 
     def test_degraded_gauges(self):
-        from shujuku.metrics import db_degraded, cache_backend_active
+        from shujuku.metrics import cache_backend_active, db_degraded
         # 验证 gauge 存在且可设置
         db_degraded.set(1)
         cache_backend_active.set(0)

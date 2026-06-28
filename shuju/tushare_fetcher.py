@@ -28,14 +28,13 @@ import logging
 import os
 import threading
 import time
-from datetime import date, datetime
+from datetime import date
 from decimal import Decimal
-from typing import Any, Optional
 
 import pandas as pd
 
 from shuju.cache_manager import DataCacheManager
-from shuju.utils import safe_decimal, make_retry
+from shuju.utils import make_retry, safe_decimal
 
 _logger = logging.getLogger(__name__)
 
@@ -47,7 +46,7 @@ _retry = make_retry("tushare", max_retries=3, logger=_logger)
 class TushareFetcher:
     """Tushare 财务数据获取器。"""
 
-    def __init__(self, token: Optional[str] = None, cache: Optional[DataCacheManager] = None) -> None:
+    def __init__(self, token: str | None = None, cache: DataCacheManager | None = None) -> None:
         self._token = token or os.getenv("TUSHARE_TOKEN", "")
         self._cache = cache or DataCacheManager()
         self._pro = None
@@ -118,7 +117,7 @@ class TushareFetcher:
         return pro.daily_basic(ts_code=self._to_ts_code(code), start_date=start, end_date=end)
 
     def get_financial_reports(
-        self, code: str, start: Optional[str] = None, end: Optional[str] = None
+        self, code: str, start: str | None = None, end: str | None = None
     ) -> list[dict]:
         """获取单只股票财务数据汇总。
 
@@ -140,7 +139,7 @@ class TushareFetcher:
 
         # 拉取各表
         income_df = self._fetch_income_raw(code, start, end)
-        balance_df = self._fetch_balance_raw(code, start, end)
+        self._fetch_balance_raw(code, start, end)
         cashflow_df = self._fetch_cashflow_raw(code, start, end)
         daily_df = self._fetch_daily_basic_raw(code, start, end)
 
@@ -238,8 +237,8 @@ class TushareFetcher:
     def get_daily_bars(
         self,
         code: str,
-        start: Optional[str] = None,
-        end: Optional[str] = None,
+        start: str | None = None,
+        end: str | None = None,
     ) -> list[dict]:
         """获取单只股票日线行情（统一字段格式）。
 
@@ -361,7 +360,7 @@ class TushareFetcher:
         self._rate_limit()
         return pro.stk_holdernumber(ts_code=self._to_ts_code(code))
 
-    def get_shareholder_count(self, code: str) -> Optional[int]:
+    def get_shareholder_count(self, code: str) -> int | None:
         """获取最新股东人数。"""
         if not self.is_ready:
             return None
@@ -395,14 +394,14 @@ class TushareFetcher:
         return mapping.get(month, "Q4")
 
     @staticmethod
-    def _calc_ratio(numerator: Optional[Decimal], denominator: Optional[Decimal]) -> Optional[Decimal]:
+    def _calc_ratio(numerator: Decimal | None, denominator: Decimal | None) -> Decimal | None:
         """安全计算比率 (百分比): numerator / denominator * 100。"""
         if numerator is None or denominator is None or denominator == 0:
             return None
         return (numerator / denominator * Decimal("100")).quantize(Decimal("0.01"))
 
     @staticmethod
-    def _calc_gross_margin(revenue: Optional[Decimal], operating_cost: Optional[Decimal]) -> Optional[Decimal]:
+    def _calc_gross_margin(revenue: Decimal | None, operating_cost: Decimal | None) -> Decimal | None:
         """毛利率 = (营业收入 - 营业成本) / 营业收入 * 100。"""
         if revenue is None or revenue == 0:
             return None

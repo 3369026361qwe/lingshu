@@ -9,10 +9,10 @@ from decimal import Decimal
 
 import pytest
 
-from shujuku.session import init_db, SessionContext
 from shujuku.repository import Repository
+from shujuku.session import SessionContext, init_db
+from yinzi.factor_base import FactorCategory, FactorResult
 from yinzi.factor_store import FactorStore
-from yinzi.factor_base import FactorResult, FactorCategory
 from yinzi.kalman_weight import KalmanWeightEstimator
 
 

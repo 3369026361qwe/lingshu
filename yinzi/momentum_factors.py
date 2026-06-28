@@ -5,7 +5,6 @@
 """
 
 from decimal import Decimal
-from typing import Optional
 
 from yinzi.factor_base import FactorBase, FactorCategory, FactorResult
 
@@ -25,7 +24,7 @@ class _MomentumBase(FactorBase):
 
     def supports_vectorized(self) -> bool: return True
 
-    def _momentum(self, daily_data: dict, lookback_days: int) -> Optional[Decimal]:
+    def _momentum(self, daily_data: dict, lookback_days: int) -> Decimal | None:
         """计算回溯期收益率 = (最新收盘价 - N日前收盘价) / N日前收盘价。"""
         if not daily_data or len(daily_data) < lookback_days:
             return None
@@ -56,7 +55,7 @@ class Momentum1MFactor(_MomentumBase):
     description = "1月动量"
     _lookback_days = 21
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         return self._momentum(daily_data, self._lookback_days)
 
 
@@ -66,7 +65,7 @@ class Momentum3MFactor(_MomentumBase):
     description = "3月动量"
     _lookback_days = 63
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         return self._momentum(daily_data, self._lookback_days)
 
 
@@ -76,7 +75,7 @@ class Momentum6MFactor(_MomentumBase):
     description = "6月动量"
     _lookback_days = 126
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         return self._momentum(daily_data, self._lookback_days)
 
 
@@ -85,7 +84,7 @@ class Momentum12M1MFactor(_MomentumBase):
     name = "momentum_12m1m"
     description = "12-1月动量"
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         if not daily_data or len(daily_data) < 252:
             return None
         sorted_dates = sorted(daily_data.keys())
@@ -109,7 +108,7 @@ class TurnoverMomentumFactor(FactorBase):
     description = "换手率动量"
     direction = 0
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         if not daily_data or len(daily_data) < 42:
             return None
         sorted_dates = sorted(daily_data.keys())
@@ -123,7 +122,7 @@ class TurnoverMomentumFactor(FactorBase):
         return None
 
     @staticmethod
-    def _avg_turnover(daily_data: dict, dates: list) -> Optional[Decimal]:
+    def _avg_turnover(daily_data: dict, dates: list) -> Decimal | None:
         values = []
         for d in dates:
             tr = daily_data[d].get("turnover_rate")

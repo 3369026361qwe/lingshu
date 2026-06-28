@@ -8,14 +8,13 @@
 """
 
 from decimal import Decimal
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 
-from shuju.data_preprocessor import DataPreprocessor
-from shuju.data_aligner import DataAligner
 from shuju.cache_manager import DataCacheManager
-
+from shuju.data_aligner import DataAligner
+from shuju.data_preprocessor import DataPreprocessor
 
 # ────────────────────────────────────────────────────────────
 # DataPreprocessor 错误注入
@@ -271,8 +270,8 @@ class TestSentimentErrorInjection:
 
     def test_cached_result_avoids_news_call(self):
         """缓存命中时完全不走 NewsFetcher（即使 NewsFetcher 为 None）。"""
+
         from shuju.sentiment_fetcher import SentimentFetcher
-        from unittest.mock import patch
 
         # 先写入缓存
         cache = DataCacheManager()

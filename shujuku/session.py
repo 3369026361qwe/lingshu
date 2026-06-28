@@ -7,8 +7,8 @@ SQLite 模式下自动启用 WAL 模式和跨线程支持。
 
 import logging
 import os
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Generator
 
 from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.orm import Session, sessionmaker

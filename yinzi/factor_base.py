@@ -7,17 +7,16 @@
 
 import time
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
-from typing import Optional
 
 try:
     from typing import TypedDict  # Python 3.8+
 except ImportError:
     TypedDict = dict  # type: ignore
 
-from yinzi.metrics import factor_compute_total, factor_compute_duration
+from yinzi.metrics import factor_compute_duration, factor_compute_total
 
 
 class FinancialDataDict(TypedDict, total=False):
@@ -66,8 +65,8 @@ class FactorResult:
     factor_name: str
     category: FactorCategory
     raw_value: Decimal
-    z_score: Optional[Decimal] = None
-    percentile: Optional[Decimal] = None
+    z_score: Decimal | None = None
+    percentile: Decimal | None = None
 
 
 class FactorBase(ABC):
@@ -89,9 +88,9 @@ class FactorBase(ABC):
         self,
         code: str,
         daily_data: dict,       # {trade_date: {open, high, low, close, volume, ...}}
-        financial_data: Optional[dict] = None,  # {report_date: {pe, roe, ...}}
+        financial_data: dict | None = None,  # {report_date: {pe, roe, ...}}
         **kwargs,
-    ) -> Optional[Decimal]:
+    ) -> Decimal | None:
         """计算单只股票的最新因子值。
 
         Args:
@@ -113,7 +112,7 @@ class FactorBase(ABC):
         self,
         stock_list: list[str],
         daily_data_map: dict[str, dict],
-        financial_data_map: Optional[dict[str, dict]] = None,
+        financial_data_map: dict[str, dict] | None = None,
         **kwargs,
     ) -> list[FactorResult]:
         """向量化批量计算（子类覆盖实现）。"""
@@ -123,7 +122,7 @@ class FactorBase(ABC):
         self,
         stock_list: list[str],
         daily_data_map: dict[str, dict],
-        financial_data_map: Optional[dict[str, dict]] = None,
+        financial_data_map: dict[str, dict] | None = None,
         **kwargs,
     ) -> list[FactorResult]:
         """批量计算因子值（默认逐只调用 compute），含 Prometheus 指标。"""

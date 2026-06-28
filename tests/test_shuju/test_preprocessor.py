@@ -4,8 +4,6 @@
 
 from decimal import Decimal
 
-import pytest
-
 from shuju.data_preprocessor import DataPreprocessor
 
 
@@ -161,7 +159,7 @@ class TestPipeline:
         result = pp.pipeline(data, industry)
         assert len(result) == 30
         # 所有值应为 Decimal
-        for code, factors in result.items():
+        for _code, factors in result.items():
             for v in factors.values():
                 assert isinstance(v, Decimal)
 

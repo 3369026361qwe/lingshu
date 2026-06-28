@@ -4,7 +4,7 @@
 CLAUDE.md 中已声明但之前未实现。
 """
 from decimal import Decimal
-from typing import Optional, Union
+from typing import Union
 
 Number = Union[int, float, Decimal]
 

@@ -1,13 +1,13 @@
 """测试风控模块: 熔断器/频率限制/仓位限制/持仓追踪/VaR/压力测试/风控总入口。"""
 from decimal import Decimal
-import pytest
-from fengkong.circuit_breaker import CircuitBreaker, BreakerState
-from fengkong.rate_limiter import RateLimiter
+
+from fengkong.circuit_breaker import BreakerState, CircuitBreaker
 from fengkong.position_limiter import PositionLimiter
 from fengkong.position_tracker import PositionTracker
-from fengkong.var_calculator import VaRCalculator
-from fengkong.stress_tester import StressTester
+from fengkong.rate_limiter import RateLimiter
 from fengkong.risk_manager import RiskManager
+from fengkong.stress_tester import StressTester
+from fengkong.var_calculator import VaRCalculator
 
 
 class TestCircuitBreaker:

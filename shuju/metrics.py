@@ -4,8 +4,7 @@ shuju 数据层 Prometheus 指标。
 复用 shujuku.metrics 的 REGISTRY，指标名统一使用 lingshu_ 前缀。
 """
 
-from prometheus_client import Counter, Gauge, Histogram
-from prometheus_client import REGISTRY
+from prometheus_client import REGISTRY, Counter, Histogram
 
 # ── 数据采集指标 ─────────────────────────────────────
 

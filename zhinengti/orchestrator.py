@@ -19,10 +19,9 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 
 from zhinengti.agent_base import AgentBase, AgentOutput, AgentStatus
-from zhinengti.metrics import orchestrator_runs_total, orchestrator_duration
+from zhinengti.metrics import orchestrator_duration, orchestrator_runs_total
 
 _logger = logging.getLogger(__name__)
 
@@ -49,7 +48,7 @@ class Orchestrator:
     def run_analysis(
         self,
         stock_list: list[str],
-        context: Optional[dict] = None,
+        context: dict | None = None,
         parallel: bool = True,
     ) -> dict:
         """执行完整分析流程。
@@ -104,8 +103,8 @@ class Orchestrator:
     def _persist_reports(self, result: dict) -> None:
         """将 Agent 输出持久化到数据库。"""
         try:
-            from shujuku.session import SessionContext
             from shujuku.repository import Repository
+            from shujuku.session import SessionContext
 
             with SessionContext() as s:
                 repo = Repository(s)
@@ -227,10 +226,10 @@ class Orchestrator:
 def create_default_orchestrator(llm_client=None, toolkit=None) -> Orchestrator:
     """创建包含全部 5 个 Agent 的预配置调度器。"""
     from zhinengti.macro_analyst import MacroAnalyst
-    from zhinengti.sector_analyst import SectorAnalyst
-    from zhinengti.stock_analyst import StockAnalyst
-    from zhinengti.sentiment_analyst import SentimentAnalyst
     from zhinengti.risk_monitor import RiskMonitor
+    from zhinengti.sector_analyst import SectorAnalyst
+    from zhinengti.sentiment_analyst import SentimentAnalyst
+    from zhinengti.stock_analyst import StockAnalyst
 
     orch = Orchestrator(llm_client=llm_client, toolkit=toolkit)
     orch.register_all([

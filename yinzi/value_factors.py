@@ -5,7 +5,6 @@
 """
 
 from decimal import Decimal
-from typing import Optional
 
 from yinzi.factor_base import FactorBase, FactorCategory, FactorResult
 
@@ -20,7 +19,7 @@ class PEFactor(FactorBase):
 
     def supports_vectorized(self) -> bool: return True
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         if financial_data:
             pe = financial_data.get("pe")
             if pe is not None:
@@ -47,7 +46,7 @@ class PBFactor(FactorBase):
 
     def supports_vectorized(self) -> bool: return True
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         if financial_data:
             pb = financial_data.get("pb")
             if pb is not None:
@@ -72,7 +71,7 @@ class PSFactor(FactorBase):
     description = "市销率 (Price to Sales)"
     direction = -1
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         if financial_data:
             ps = financial_data.get("ps")
             if ps is not None:
@@ -84,7 +83,7 @@ class PSFactor(FactorBase):
         return None
 
     @staticmethod
-    def _latest_close(daily_data: dict) -> Optional[Decimal]:
+    def _latest_close(daily_data: dict) -> Decimal | None:
         if not daily_data:
             return None
         latest_date = max(daily_data.keys())
@@ -102,7 +101,7 @@ class FCFYieldFactor(FactorBase):
 
     def supports_vectorized(self) -> bool: return True
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         if financial_data:
             fcf_yield = financial_data.get("free_cashflow_yield")
             if fcf_yield is not None:
@@ -127,7 +126,7 @@ class PEGFactor(FactorBase):
     description = "市盈率相对盈利增长比率"
     direction = -1
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         if not financial_data:
             return None
         pe = financial_data.get("pe")
@@ -146,7 +145,7 @@ class PEGFactor(FactorBase):
         return (pe_d / growth_d).quantize(Decimal("0.01"))
 
     @staticmethod
-    def _calc_growth(historical_reports: list[dict]) -> Optional[float]:
+    def _calc_growth(historical_reports: list[dict]) -> float | None:
         """从历史报告计算净利润同比增长率。"""
         if len(historical_reports) < 2:
             return None

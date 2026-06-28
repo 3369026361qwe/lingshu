@@ -16,15 +16,18 @@ Usage:
 import json
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any
 
-from shujuku.redis_cache import CacheManager
 from shuju.constants import (
-    TTL_DAILY_BAR, TTL_FINANCIAL, TTL_NEWS, TTL_SENTIMENT,
-    TTL_PREPROCESSED, TTL_INDUSTRY,
+    TTL_DAILY_BAR,
+    TTL_FINANCIAL,
+    TTL_INDUSTRY,
+    TTL_NEWS,
+    TTL_PREPROCESSED,
+    TTL_SENTIMENT,
 )
 from shuju.metrics import data_cache_hits, data_cache_misses
-
+from shujuku.redis_cache import CacheManager
 
 # ── Decimal 安全序列化 ──────────────────────────────────
 # CRITICAL FIX: json.dumps 将 Decimal→str 后，json.loads 不会自动还原为 Decimal。
@@ -82,7 +85,7 @@ class DataCacheManager:
         key = f"bar:{code}:{trade_date}"
         self._cache.set(key, self._safe_serialize(bar), ttl=TTL_DAILY_BAR)
 
-    def _cache_get(self, key: str, data_type: str) -> Optional[str]:
+    def _cache_get(self, key: str, data_type: str) -> str | None:
         """内部: 获取缓存原始值并记录命中/未命中指标。"""
         raw = self._cache.get(key)
         if raw:
@@ -91,7 +94,7 @@ class DataCacheManager:
             data_cache_misses.labels(data_type=data_type).inc()
         return raw
 
-    def get_daily_bar(self, code: str, trade_date: str) -> Optional[dict]:
+    def get_daily_bar(self, code: str, trade_date: str) -> dict | None:
         """获取缓存的日线数据。"""
         key = f"bar:{code}:{trade_date}"
         raw = self._cache_get(key, "daily_bar")
@@ -102,7 +105,7 @@ class DataCacheManager:
         key = f"bars:{code}"
         self._cache.set(key, self._safe_serialize(bars), ttl=TTL_DAILY_BAR)
 
-    def get_daily_bars_batch(self, code: str) -> Optional[list[dict]]:
+    def get_daily_bars_batch(self, code: str) -> list[dict] | None:
         """获取某股票的全部缓存日线。"""
         key = f"bars:{code}"
         raw = self._cache_get(key, "daily_bar")
@@ -115,7 +118,7 @@ class DataCacheManager:
         key = f"fin:{code}:{report_date}"
         self._cache.set(key, self._safe_serialize(data), ttl=TTL_FINANCIAL)
 
-    def get_financial(self, code: str, report_date: str) -> Optional[dict]:
+    def get_financial(self, code: str, report_date: str) -> dict | None:
         """获取缓存的财务数据。"""
         key = f"fin:{code}:{report_date}"
         raw = self._cache_get(key, "financial")
@@ -128,7 +131,7 @@ class DataCacheManager:
         key = f"news:{news_id}"
         self._cache.set(key, self._safe_serialize(data), ttl=TTL_NEWS)
 
-    def get_news(self, news_id: str) -> Optional[dict]:
+    def get_news(self, news_id: str) -> dict | None:
         """获取缓存的新闻。"""
         key = f"news:{news_id}"
         raw = self._cache_get(key, "news")
@@ -139,7 +142,7 @@ class DataCacheManager:
         key = f"sentiment:{code}"
         self._cache.set(key, self._safe_serialize(data), ttl=TTL_SENTIMENT)
 
-    def get_sentiment(self, code: str) -> Optional[dict]:
+    def get_sentiment(self, code: str) -> dict | None:
         """获取缓存的舆情数据。"""
         key = f"sentiment:{code}"
         raw = self._cache_get(key, "sentiment")
@@ -152,7 +155,7 @@ class DataCacheManager:
         key = f"pp:{dataset_id}"
         self._cache.set(key, self._safe_serialize(data), ttl=TTL_PREPROCESSED)
 
-    def get_preprocessed(self, dataset_id: str) -> Optional[Any]:
+    def get_preprocessed(self, dataset_id: str) -> Any | None:
         """获取缓存的预处理结果。"""
         key = f"pp:{dataset_id}"
         raw = self._cache_get(key, "preprocessed")
@@ -165,7 +168,7 @@ class DataCacheManager:
         key = f"industry:{code}"
         self._cache.set(key, self._safe_serialize(data), ttl=TTL_INDUSTRY)
 
-    def get_industry(self, code: str) -> Optional[dict]:
+    def get_industry(self, code: str) -> dict | None:
         """获取缓存的行业分类。"""
         key = f"industry:{code}"
         raw = self._cache_get(key, "industry")

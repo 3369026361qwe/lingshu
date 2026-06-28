@@ -8,10 +8,9 @@ from datetime import datetime, timezone
 import pytest
 from sqlalchemy import text
 
-from huice.backtest_engine import DBBacktestRunner, BacktestEngine
+from huice.backtest_engine import BacktestEngine, DBBacktestRunner
 from shujuku.models import Base
 from shujuku.session import SessionContext, _engine
-
 
 # ── Fixtures ──────────────────────────────────────────────
 

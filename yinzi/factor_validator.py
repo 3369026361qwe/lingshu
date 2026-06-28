@@ -15,11 +15,12 @@ Usage:
 
 import logging
 from decimal import Decimal
-from typing import Optional
 
 import numpy as np
 
-from yinzi.metrics import factor_ic as factor_ic_gauge, factor_ir as factor_ir_gauge, factor_coverage
+from yinzi.metrics import factor_coverage
+from yinzi.metrics import factor_ic as factor_ic_gauge
+from yinzi.metrics import factor_ir as factor_ir_gauge
 
 _logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class FactorValidator:
     def compute_rank_ic(
         factor_values: dict[str, Decimal],   # {code: factor_value}
         forward_returns: dict[str, Decimal], # {code: next_period_return}
-    ) -> Optional[Decimal]:
+    ) -> Decimal | None:
         """计算 Rank IC (Spearman 秩相关系数)。
 
         IC > 0.02 为有效因子, IC > 0.05 为强有效。
@@ -50,7 +51,7 @@ class FactorValidator:
             return None
 
         # 排序 → 秩
-        codes = [p[0] for p in pairs]  # 占位，只用于区分
+        [p[0] for p in pairs]  # 占位，只用于区分
         fv_sorted = sorted(enumerate(pairs), key=lambda x: x[1][0])
         fr_sorted = sorted(enumerate(pairs), key=lambda x: x[1][1])
 
@@ -70,7 +71,7 @@ class FactorValidator:
     # ── IR ─────────────────────────────────────────────
 
     @staticmethod
-    def compute_ir(ic_series: list[Decimal]) -> Optional[Decimal]:
+    def compute_ir(ic_series: list[Decimal]) -> Decimal | None:
         """IR = IC 均值 / IC 标准差。IR > 0.5 为良好，IR > 1.0 为优秀。"""
         if len(ic_series) < 12:
             return None
@@ -127,7 +128,7 @@ class FactorValidator:
     # ── P1-3: NDCG@k + ranking_metric ──────────────────
 
     @staticmethod
-    def compute_ndcg(factor_values: dict[str, Decimal], forward_returns: dict[str, Decimal], k: int = 30) -> Optional[Decimal]:
+    def compute_ndcg(factor_values: dict[str, Decimal], forward_returns: dict[str, Decimal], k: int = 30) -> Decimal | None:
         """NDCG@k排序质量指标。"""
         common = set(factor_values) & set(forward_returns)
         if len(common) < k: return None
@@ -148,7 +149,7 @@ class FactorValidator:
         return Decimal(str(round(dcgv / idcgv, 6)))
 
     @staticmethod
-    def compute_ranking_metric(factor_values: dict[str, Decimal], forward_returns: dict[str, Decimal], k: int = 5) -> Optional[Decimal]:
+    def compute_ranking_metric(factor_values: dict[str, Decimal], forward_returns: dict[str, Decimal], k: int = 5) -> Decimal | None:
         """THU-BDC2026同款:归一化Top-K排序质量=(pred_top_sum-random_sum)/(true_top_sum-random_sum)。"""
         common = set(factor_values) & set(forward_returns)
         pairs = [(c, float(factor_values[c]), float(forward_returns[c])) for c in common]
@@ -275,7 +276,7 @@ class FactorValidator:
         factor_name: str,
         factor_values: dict[str, Decimal],
         forward_returns: dict[str, Decimal],
-        ic_series: Optional[list[Decimal]] = None,
+        ic_series: list[Decimal] | None = None,
     ) -> dict:
         """一站式因子有效性检验。
 

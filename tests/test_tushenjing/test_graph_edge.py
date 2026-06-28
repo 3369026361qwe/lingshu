@@ -1,10 +1,12 @@
 """tushenjing 边缘场景测试：空图、单节点、大数据集、重复边、GAT注意力。"""
 import time
+
 import numpy as np
-from tushenjing.graph_builder import GraphBuilder
-from tushenjing.graph_utils import GraphUtils
+
 from tushenjing.gnn_model import GCNModel
+from tushenjing.graph_builder import GraphBuilder
 from tushenjing.graph_trainer import GraphTrainer
+from tushenjing.graph_utils import GraphUtils
 
 
 class TestEmptyGraph:

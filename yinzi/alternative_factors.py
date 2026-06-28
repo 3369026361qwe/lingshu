@@ -5,7 +5,6 @@
 """
 
 from decimal import Decimal
-from typing import Optional
 
 from yinzi.factor_base import FactorBase, FactorCategory
 
@@ -17,7 +16,7 @@ class AnalystCoverageFactor(FactorBase):
     description = "分析师覆盖变化率"
     direction = 1
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         coverage_data = kwargs.get("analyst_coverage", {})
         if code in coverage_data:
             current, previous = coverage_data[code]
@@ -33,7 +32,7 @@ class InstitutionalHoldingFactor(FactorBase):
     description = "机构持股比例变化"
     direction = 1
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         inst_data = kwargs.get("institutional_holding", {})
         if code in inst_data:
             current, previous = inst_data[code]
@@ -48,7 +47,7 @@ class ShareholderCountFactor(FactorBase):
     description = "股东人数变化率"
     direction = -1
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         holder_data = kwargs.get("shareholder_count", {})
         if code in holder_data:
             current, previous = holder_data[code]

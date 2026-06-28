@@ -4,13 +4,11 @@
 
 from decimal import Decimal
 
-import pytest
-
+from juece.benchmark import Benchmark
 from juece.ensemble_engine import EnsembleEngine
-from juece.stock_selector import StockSelector
 from juece.portfolio_optimizer import PortfolioOptimizer
 from juece.rebalancer import Rebalancer
-from juece.benchmark import Benchmark
+from juece.stock_selector import StockSelector
 
 
 def _make_scores(n=100):

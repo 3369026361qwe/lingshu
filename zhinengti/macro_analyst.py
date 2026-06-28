@@ -2,11 +2,9 @@
 宏观分析师 Agent — 分析宏观经济环境并给出系统性评分。
 """
 
-import json
 import time
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 
 from zhinengti.agent_base import AgentBase, AgentOutput, AgentStatus
 from zhinengti.prompt_templates import get_prompt

@@ -10,13 +10,11 @@ Usage:
     results = rag.search("贵州茅台 2025年报 净利润", top_k=5)
 """
 
-import json
 import logging
 import re
 import time
-from typing import Any, Optional
 
-from zhinengti.metrics import rag_search_latency, rag_documents_indexed
+from zhinengti.metrics import rag_documents_indexed, rag_search_latency
 
 _logger = logging.getLogger(__name__)
 

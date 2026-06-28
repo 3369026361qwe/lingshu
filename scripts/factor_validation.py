@@ -8,16 +8,19 @@
 
 本脚本提供 CSV 数据加载 + 市场 regime 条件 IC + 综合评分报告。
 """
-import csv, json, time, os, sys
-from pathlib import Path
+import csv
+import sys
+import time
 from collections import defaultdict
 from decimal import Decimal
-from math import sqrt, isnan, isinf, log2
+from math import isinf, isnan, sqrt
+from pathlib import Path
 from statistics import mean, stdev
 
 import numpy as np
-from scipy.stats import spearmanr, pearsonr
 from dotenv import load_dotenv
+from scipy.stats import spearmanr
+
 load_dotenv(Path('E:/28721/lingshu/.env'))
 sys.stdout.reconfigure(encoding='utf-8')
 
@@ -40,7 +43,7 @@ print('\n[1/7] Loading data...')
 t0 = time.time()
 
 # Daily bars for close prices and market index
-with open(BASE / 'hs800_daily_all.csv', 'r', encoding='utf-8-sig') as f:
+with open(BASE / 'hs800_daily_all.csv', encoding='utf-8-sig') as f:
     raw_rows = list(csv.DictReader(f))
 
 all_dates = sorted(set(r['trade_date'] for r in raw_rows))
@@ -66,8 +69,9 @@ for i in range(1, len(all_dates)):
         market_rets[d_curr] = mean(rets)
 
 # Load factor values from DB
-from shujuku.session import SessionContext
 from sqlalchemy import text
+
+from shujuku.session import SessionContext
 
 with SessionContext() as s:
     rows = s.execute(text(
@@ -76,7 +80,7 @@ with SessionContext() as s:
 
 # Build: {trade_date: {factor_name: {code: value}}}
 factor_data = defaultdict(lambda: defaultdict(dict))
-for code, trade_date, category, factor_name, raw_value in rows:
+for code, trade_date, _category, factor_name, raw_value in rows:
     try:
         val = Decimal(str(raw_value))
         td = str(trade_date)
@@ -335,8 +339,12 @@ print('\n[7/7] Generating validation report...\n')
 def validate_factor(fname):
     """Return dict with all validation metrics and pass/fail flags."""
     from yinzi.factor_scoring import (
-        _score_ic_20d, _score_ic_decay, _score_regime,
-        _score_monotonicity, _score_stability, compute_final_grade,
+        _score_ic_20d,
+        _score_ic_decay,
+        _score_monotonicity,
+        _score_regime,
+        _score_stability,
+        compute_final_grade,
     )
     result = {'name': fname, 'checks': {}, 'warnings': [], 'score': 0, 'max_score': 0}
 
@@ -391,7 +399,7 @@ for rank, (fname, vr) in enumerate(sorted_results, 1):
 
 # Section B: Multi-horizon IC decay table
 print(f'\n{"─"*80}')
-print(f'  多周期 IC 衰减矩阵 (mean Rank IC)')
+print('  多周期 IC 衰减矩阵 (mean Rank IC)')
 print(f'{"─"*80}')
 
 header = f'  {"Factor":25s}'
@@ -423,7 +431,7 @@ for fname, _ in sorted_results:
 
 # Section C: Regime IC comparison
 print(f'\n{"─"*80}')
-print(f'  市场 Regime 条件 IC (20d forward)')
+print('  市场 Regime 条件 IC (20d forward)')
 print(f'{"─"*80}')
 print(f'  {"Factor":25s}  {"Bull IC":>10s}  {"Bear IC":>10s}  {"Side IC":>10s}  {"Consistent":>10s}')
 print(f'  {"-"*70}')
@@ -446,7 +454,7 @@ for fname, _ in sorted_results:
 
 # Section D: Factor stability ranking
 print(f'\n{"─"*80}')
-print(f'  因子稳定性 (自相关 → 低换手率)')
+print('  因子稳定性 (自相关 → 低换手率)')
 print(f'{"─"*80}')
 stability_ranking = sorted(autocorr_summary.items(),
                            key=lambda x: x[1]['mean_autocorr'], reverse=True)
@@ -458,7 +466,7 @@ for rank, (fname, ac) in enumerate(stability_ranking[:15], 1):
 
 # Section E: Monotonicity ranking
 print(f'\n{"─"*80}')
-print(f'  因子单调性 (10分位组收益单调递增率)')
+print('  因子单调性 (10分位组收益单调递增率)')
 print(f'{"─"*80}')
 mono_ranking = sorted(monotonicity_scores.items(),
                       key=lambda x: x[1]['mean_mono'], reverse=True)
@@ -469,7 +477,7 @@ for rank, (fname, ms) in enumerate(mono_ranking, 1):
 
 # Section F: Final summary
 print(f'\n{"="*80}')
-print(f'  因子验证总结')
+print('  因子验证总结')
 print(f'{"="*80}')
 
 keep_list = [fn for fn, vr in sorted_results if vr['action'] == 'KEEP']

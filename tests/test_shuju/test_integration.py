@@ -9,8 +9,8 @@ from decimal import Decimal
 
 import pytest
 
-from shujuku.session import init_db, SessionContext
 from shujuku.repository import Repository
+from shujuku.session import SessionContext, init_db
 
 
 @pytest.fixture(autouse=True)

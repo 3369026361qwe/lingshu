@@ -2,7 +2,6 @@
 舆情分析师 Agent — 市场情绪监测和舆情信号提取。
 """
 
-import json
 import time
 from datetime import datetime
 from decimal import Decimal

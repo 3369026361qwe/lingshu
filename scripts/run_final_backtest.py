@@ -7,17 +7,15 @@
 import argparse
 import time
 from collections import defaultdict
-from pathlib import Path
 from math import sqrt
+from pathlib import Path
 from statistics import mean, stdev
 
-import numpy as np
 import torch
-
 from dotenv import load_dotenv
+
 load_dotenv(Path('E:/28721/lingshu/.env'))
 
-from huice.backtest_engine import DBBacktestRunner
 from tushenjing.graph_inference import load_gnn_checkpoint, run_gnn_inference
 
 # ── 默认参数 ──────────────────────────────────────────
@@ -93,7 +91,7 @@ def backtest_scores(scores_by_date, label, close_map, all_dates_ordered,
     tr = (fv - capital) / capital * 100
     ny = len(rets) / 252
     ar = ((fv / capital) ** (1 / ny) - 1) * 100 if ny > 0 else 0
-    mu = mean(rets)
+    mean(rets)
     sg = stdev(rets) if len(rets) > 1 else 0.01
     av = sg * sqrt(252) * 100
     sh = (ar - 2.5) / av if av > 0 else 0
@@ -121,12 +119,13 @@ def main():
     args = parser.parse_args()
 
     print('=' * 60)
-    print(f'  灵枢量化 — 最终回测验证')
+    print('  灵枢量化 — 最终回测验证')
     print(f'  参数: TopN={args.top_n} | Freq={args.freq}d | {DEVICE}')
     print('=' * 60)
 
-    from shujuku.session import SessionContext
     from sqlalchemy import text
+
+    from shujuku.session import SessionContext
 
     # 1 ── 加载数据 ──
     print('\n[1/4] Loading data...')
@@ -172,7 +171,7 @@ def main():
         gnn_scores = run_gnn_inference(ckpt, factor_by_date, str(DEVICE))
         print(f'  {ckpt["model_type"]} | {len(gnn_scores)} dates ({time.time() - t0:.1f}s)')
     else:
-        print(f'  No GNN model found, skipping')
+        print('  No GNN model found, skipping')
         gnn_scores = {}
 
     # 3 ── 策略对比 ──
@@ -212,7 +211,7 @@ def main():
 
     # 4 ── 报告 ──
     print(f'\n{"=" * 60}')
-    print(f'  最终回测报告')
+    print('  最终回测报告')
     print(f'{"=" * 60}')
     print(f'  {"Strategy":20s} {"Return":>8s} {"Sharpe":>8s} {"MaxDD":>8s} {"Vol":>8s} {"Win%":>7s}')
     print(f'  {"-" * 55}')

@@ -5,7 +5,6 @@
 """
 
 from decimal import Decimal
-from typing import Optional
 
 from yinzi.factor_base import FactorBase, FactorCategory
 
@@ -17,7 +16,7 @@ class ROEFactor(FactorBase):
     description = "净资产收益率"
     direction = 1
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         if financial_data and financial_data.get("roe") is not None:
             return Decimal(str(financial_data["roe"]))
         return None
@@ -30,7 +29,7 @@ class ROAFactor(FactorBase):
     description = "总资产收益率"
     direction = 1
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         if financial_data and financial_data.get("roa") is not None:
             return Decimal(str(financial_data["roa"]))
         return None
@@ -43,7 +42,7 @@ class GrossMarginFactor(FactorBase):
     description = "毛利率"
     direction = 1
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         if financial_data and financial_data.get("gross_margin") is not None:
             return Decimal(str(financial_data["gross_margin"]))
         return None
@@ -56,7 +55,7 @@ class NetMarginFactor(FactorBase):
     description = "净利率"
     direction = 1
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         if financial_data and financial_data.get("net_margin") is not None:
             return Decimal(str(financial_data["net_margin"]))
         return None
@@ -69,7 +68,7 @@ class CashflowToRevenueFactor(FactorBase):
     description = "经营现金流/营收"
     direction = 1
 
-    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Optional[Decimal]:
+    def compute(self, code, daily_data, financial_data=None, **kwargs) -> Decimal | None:
         if not financial_data:
             return None
         ocf = financial_data.get("operating_cashflow")

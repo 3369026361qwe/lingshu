@@ -1,12 +1,11 @@
 """测试 GNN 路由辅助函数。"""
-import json
-import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 from jiekou.routes.gnn_routes import (
-    _load_latest_predictions, _load_edges, _build_nodes, _cap_edges,
+    _build_nodes,
+    _cap_edges,
+    _load_latest_predictions,
 )
 
 

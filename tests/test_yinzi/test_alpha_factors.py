@@ -1,6 +1,16 @@
 """测试Alpha因子: ROC/STD/CORR/MAX/MIN/VMA/CNTP。"""
 from decimal import Decimal
-from yinzi.alpha_factors import ROCFactor, STDFactor, CORRFactor, MAXFactor, MINFactor, VMAFactor, CNTPFactor, create_alpha_factors
+
+from yinzi.alpha_factors import (
+    CNTPFactor,
+    CORRFactor,
+    MAXFactor,
+    MINFactor,
+    ROCFactor,
+    STDFactor,
+    VMAFactor,
+    create_alpha_factors,
+)
 
 
 def _make_daily(n=120):
@@ -45,7 +55,7 @@ class TestAlphaFactors:
 
     def test_stage1_factors(self):
         """阶段1: RANK/SKEW/TURN/AMP。"""
-        from yinzi.alpha_factors import RANKFactor, SKEWFactor, TURNFactor, AMPFactor
+        from yinzi.alpha_factors import AMPFactor, RANKFactor, SKEWFactor, TURNFactor
         d = _make_daily(120)
         assert RANKFactor(20).compute("000001", d) is not None
         assert TURNFactor(20).compute("000001", d) is not None
@@ -63,14 +73,14 @@ class TestAlphaFactors:
 
     def test_cross_factors(self):
         """阶段3: 交叉因子。"""
-        from yinzi.alpha_factors import CrossFactor, ROCFactor, STDFactor, MAXFactor, MINFactor
+        from yinzi.alpha_factors import CrossFactor, ROCFactor, STDFactor
         cf = CrossFactor("test_cross", ROCFactor(20), STDFactor(20), "ratio")
         v = cf.compute("000001", _make_daily(120))
         assert v is not None
 
     def test_intraday_factors(self):
         """阶段4: 日内因子 VWAP/HLSpread/OC。"""
-        from yinzi.alpha_factors import VWAPFactor, HLSpreadFactor, OCFactor
+        from yinzi.alpha_factors import HLSpreadFactor, OCFactor, VWAPFactor
         d = _make_daily(120)
         assert VWAPFactor(20).compute("000001", d) is not None
         assert HLSpreadFactor(20).compute("000001", d) is not None
@@ -125,8 +135,9 @@ class TestLambdaRank:
         assert grad.shape == (8,)
 
     def test_perfect_order_zero_loss(self):
-        from juece.lambda_rank import LambdaRankLoss
         import numpy as np
+
+        from juece.lambda_rank import LambdaRankLoss
         lr = LambdaRankLoss(k=3)
         y = np.array([0.9, 0.7, 0.5, 0.3])
         loss = lr.compute_loss(y, y)

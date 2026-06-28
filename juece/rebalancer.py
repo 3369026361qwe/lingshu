@@ -3,7 +3,6 @@
 """
 
 from decimal import Decimal
-from typing import Optional
 
 
 class Rebalancer:

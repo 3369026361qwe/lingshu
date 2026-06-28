@@ -2,17 +2,22 @@
 安全说明: 本脚本仅管理 stock_info/daily_bar/financial_report 三张表，
 使用定向 TRUNCATE 而非 drop_all，不会影响 factor_value 等计算密集表。
 """
-import csv, json, os, time
+import csv
+import json
+import os
+import time
 from pathlib import Path
+
 import tushare as ts
 from dotenv import load_dotenv
+
 load_dotenv(Path('E:/28721/lingshu/.env'))
 ts.set_token(os.environ['TUSHARE_TOKEN'])
 pro = ts.pro_api()
 
-from shujuku.session import init_db, SessionContext
-from shujuku.models.market_models import StockInfo, DailyBar, FinancialReport
 from sqlalchemy import text
+
+from shujuku.session import SessionContext, init_db
 
 base = Path('E:/28721/lingshu/data')
 
@@ -28,7 +33,7 @@ with SessionContext() as s:
 print('Target tables cleaned (stock_info, daily_bar, financial_report)')
 
 # Load HS800 codes
-with open(base / 'hs800_daily_all.csv', 'r', encoding='utf-8-sig') as f:
+with open(base / 'hs800_daily_all.csv', encoding='utf-8-sig') as f:
     hs800_codes = set(r['ts_code'] for r in csv.DictReader(f))
 print(f'HS800 stocks: {len(hs800_codes)}')
 
@@ -55,7 +60,7 @@ print(f'  Stocks: {result}')
 
 # ===== 2. Daily bars =====
 print('\n[2/4] Daily bars (883K rows)...')
-with open(base / 'hs800_daily_all.csv', 'r', encoding='utf-8-sig') as f:
+with open(base / 'hs800_daily_all.csv', encoding='utf-8-sig') as f:
     all_rows = list(csv.DictReader(f))
 
 BATCH = 2000
@@ -93,7 +98,7 @@ print(f'  Daily bars: {result:,} ({time.time()-t0:.0f}s)')
 
 # ===== 3. Financial reports =====
 print('\n[3/4] Financial reports...')
-with open(base / 'financial_data.json', 'r', encoding='utf-8') as f:
+with open(base / 'financial_data.json', encoding='utf-8') as f:
     fin_data = json.load(f)
 
 fin_count = 0
@@ -138,7 +143,7 @@ with SessionContext() as s:
         print(f'  {table}: {count:,} rows')
     # Sample query
     rows = s.execute(text("SELECT code, trade_date, close FROM daily_bar WHERE code='000001.SZ' ORDER BY trade_date DESC LIMIT 3")).fetchall()
-    print(f'\n  Sample (000001.SZ):')
+    print('\n  Sample (000001.SZ):')
     for r in rows:
         print(f'    {r[0]} {r[1]} close={r[2]}')
 

@@ -2,11 +2,9 @@
 个股分析师 Agent — 深度基本面分析和估值模型。
 """
 
-import json
 import time
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 
 from zhinengti.agent_base import AgentBase, AgentOutput, AgentStatus
 from zhinengti.prompt_templates import get_prompt
@@ -106,7 +104,7 @@ class StockAnalyst(AgentBase):
         parts = [
             f"## 股票: {context.get('code', '')}",
             f"市场数据: {context.get('market_summary', 'N/A')}",
-            f"\n### 财务数据",
+            "\n### 财务数据",
         ]
         for k, v in fin.items():
             parts.append(f"  {k}: {v}")

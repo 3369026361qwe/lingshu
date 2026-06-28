@@ -2,9 +2,9 @@
 测试 SentimentFetcher 情感分析：情感词统计、否定词反转、市场情绪指数。
 """
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-from shuju.sentiment_fetcher import SentimentFetcher, _POSITIVE_WORDS, _NEGATIVE_WORDS, _NEGATION_WORDS
+from shuju.sentiment_fetcher import SentimentFetcher
 
 
 class TestWordCounting:

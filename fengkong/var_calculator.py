@@ -1,13 +1,12 @@
 """VaR/CVaR 实时计算器 — L3 防护层。"""
 from decimal import Decimal
-from typing import Optional
 
 
 class VaRCalculator:
     """风险价值计算器。"""
 
     @staticmethod
-    def historical_var(returns: list[Decimal], confidence: Decimal = Decimal("0.95")) -> Optional[Decimal]:
+    def historical_var(returns: list[Decimal], confidence: Decimal = Decimal("0.95")) -> Decimal | None:
         """历史模拟法 VaR。"""
         if len(returns) < 20:
             return None
@@ -16,7 +15,7 @@ class VaRCalculator:
         return abs(sorted_returns[max(0, idx)])
 
     @staticmethod
-    def historical_cvar(returns: list[Decimal], confidence: Decimal = Decimal("0.95")) -> Optional[Decimal]:
+    def historical_cvar(returns: list[Decimal], confidence: Decimal = Decimal("0.95")) -> Decimal | None:
         """CVaR (Expected Shortfall)。"""
         if len(returns) < 20:
             return None
@@ -28,7 +27,7 @@ class VaRCalculator:
         return abs(sum(tail) / len(tail))
 
     @staticmethod
-    def parametric_var(returns: list[Decimal], confidence: Decimal = Decimal("0.95")) -> Optional[Decimal]:
+    def parametric_var(returns: list[Decimal], confidence: Decimal = Decimal("0.95")) -> Decimal | None:
         """参数法 VaR（假设正态分布）。"""
         if len(returns) < 20:
             return None

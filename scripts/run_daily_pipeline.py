@@ -16,17 +16,18 @@ Usage:
   python scripts/run_daily_pipeline.py --skip-gnn   # 跳过GNN(快速模式)
   python scripts/run_daily_pipeline.py --date 2026-06-08  # 指定日期
 """
-import sys, os, json, time, argparse
-from pathlib import Path
-from datetime import date, datetime
+import argparse
+import os
+import sys
+import time
 from collections import defaultdict
-from decimal import Decimal
-from math import sqrt, isnan
-from statistics import mean, stdev
+from datetime import date, datetime
+from math import isnan
+from pathlib import Path
+
 import numpy as np
-
-
 from dotenv import load_dotenv
+
 load_dotenv(Path('E:/28721/lingshu/.env'))
 sys.stdout.reconfigure(encoding='utf-8')
 
@@ -50,7 +51,7 @@ args = parser.parse_args()
 target_date = args.date or date.today().isoformat()
 target_date_clean = target_date.replace('-', '')  # YYYYMMDD for DB comparison
 print('=' * 65)
-print(f'  灵枢量化系统 — 每日自动流水线')
+print('  灵枢量化系统 — 每日自动流水线')
 print(f'  日期: {target_date}')
 print(f'  GNN: {"跳过" if args.skip_gnn else "启用"}')
 print('=' * 65)
@@ -61,8 +62,9 @@ print('=' * 65)
 print('\n[Step 1/8] Checking data freshness...')
 t0 = time.time()
 
-from shujuku.session import SessionContext
 from sqlalchemy import text
+
+from shujuku.session import SessionContext
 
 with SessionContext() as s:
     latest_bar = s.execute(text('SELECT MAX(trade_date) FROM daily_bar')).scalar()
@@ -133,7 +135,8 @@ if args.skip_gnn or not gnn_available:
     print(f'  GNN skipped (model available: {gnn_available})')
     gnn_preds = None
 else:
-    import torch, torch.nn.functional as F
+    import torch
+    import torch.nn.functional as F
     from torch_geometric.nn import GCNConv
 
     class StockGCN(torch.nn.Module):
@@ -168,7 +171,7 @@ else:
     for i, code in enumerate(stock_codes):
         if code in fv:
             for j, fn in enumerate(checkpoint['features']):
-                v = fv[code].get(fn);
+                v = fv[code].get(fn)
                 if v is not None and not isnan(v) and abs(v) < 1e8: feats[i,j] = v
 
     x = torch.from_numpy(feats).float()
@@ -215,6 +218,7 @@ picks = ranked[:TOP_N]
 
 # Industry diversification
 import tushare as ts
+
 ts.set_token(os.environ.get('TUSHARE_TOKEN',''))
 pro = ts.pro_api()
 try:
@@ -255,9 +259,9 @@ if snap:
         elif dd > 0.10: risk_status = 'ELEVATED'
         print(f'  Current DD: {dd:.1%} | Risk: {risk_status}')
     else:
-        print(f'  No portfolio history | Risk: LOW')
+        print('  No portfolio history | Risk: LOW')
 else:
-    print(f'  No portfolio history | Risk: LOW')
+    print('  No portfolio history | Risk: LOW')
 
 # ═══════════════════════════════════════════════════
 # Step 7: Store Signals
@@ -265,9 +269,9 @@ else:
 print('\n[Step 7/8] Storing signals...')
 
 signal_map = {}
-for ri, (code, score) in enumerate(picks, 1):
-    if ri <= TOP_N // 3: sig = 'STRONG_BUY'
-    elif ri <= TOP_N * 2 // 3: sig = 'BUY'
+for _ri, (code, _score) in enumerate(picks, 1):
+    if _ri <= TOP_N // 3: sig = 'STRONG_BUY'
+    elif _ri <= TOP_N * 2 // 3: sig = 'BUY'
     else: sig = 'WATCH'
     signal_map[code] = sig
 
@@ -293,7 +297,7 @@ for ri, (code, score) in enumerate(picks, 1):
     sig = signal_map.get(code, 'HOLD')
     print(f'  {ri:>4d}  {code:10s}  {score:>8.4f}  {sig:12s}  {ind}')
 
-print(f'\n  ── 风险状态 ──')
+print('\n  ── 风险状态 ──')
 print(f'  风险等级: {risk_status}')
 print(f'  行业数:   {len(set(industry_map.get(c,"?") for c,_ in picks))}')
 print(f'  最大行业: {max(ind_count.values()) if ind_count else 0}/{TOP_N}')
@@ -304,11 +308,11 @@ with SessionContext() as s:
         'SELECT COUNT(*), AVG(total_value), MIN(cumulative_return), MAX(cumulative_return) FROM portfolio_snapshot'
     )).fetchone()
     if perf and perf[0] > 0:
-        print(f'\n  ── 累计绩效 ──')
+        print('\n  ── 累计绩效 ──')
         print(f'  快照数:   {perf[0]}')
         print(f'  最高收益: {perf[3]:+.2%}' if perf[3] else '')
 
-print(f'\n  ── 因子表现 ──')
+print('\n  ── 因子表现 ──')
 with SessionContext() as s:
     top_ic = s.execute(text(
         'SELECT factor_name, AVG(ic) FROM factor_ic_record GROUP BY factor_name ORDER BY ABS(AVG(ic)) DESC LIMIT 5'
@@ -317,7 +321,7 @@ with SessionContext() as s:
         for fn, mic in top_ic:
             print(f'  {fn:25s}: IC={float(mic):+.4f}')
     else:
-        print(f'  (no IC records)')
+        print('  (no IC records)')
 
 print(f'\n{"="*65}')
 print(f'  流水线完成 — {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')

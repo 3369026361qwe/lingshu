@@ -1,12 +1,12 @@
 """风控总入口 — 串联 L1-L3 检查，输出统一风控报告。"""
 from decimal import Decimal
-from typing import Optional
-from fengkong.circuit_breaker import CircuitBreaker, BreakerState
-from fengkong.rate_limiter import RateLimiter
+
+from fengkong.circuit_breaker import CircuitBreaker
 from fengkong.position_limiter import PositionLimiter
 from fengkong.position_tracker import PositionTracker
-from fengkong.var_calculator import VaRCalculator
+from fengkong.rate_limiter import RateLimiter
 from fengkong.stress_tester import StressTester
+from fengkong.var_calculator import VaRCalculator
 
 
 class RiskManager:
@@ -19,7 +19,7 @@ class RiskManager:
         self.tracker = PositionTracker()
         self.stress_tester = StressTester()
 
-    def check_all(self, portfolio: list[dict], daily_pnl: Decimal, current_equity: Decimal, daily_returns: list[Decimal], industry_map: Optional[dict[str, str]] = None) -> dict:
+    def check_all(self, portfolio: list[dict], daily_pnl: Decimal, current_equity: Decimal, daily_returns: list[Decimal], industry_map: dict[str, str] | None = None) -> dict:
         """执行全部风控检查。
 
         Returns:

@@ -6,8 +6,8 @@ from decimal import Decimal
 
 import pytest
 
-from yinzi.kalman_weight import KalmanWeightEstimator
 from yinzi.factor_validator import FactorValidator
+from yinzi.kalman_weight import KalmanWeightEstimator
 
 
 class TestKalmanFilter:

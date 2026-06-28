@@ -8,12 +8,12 @@ import json
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
-from zhinengti.metrics import llm_call_total, llm_call_latency, agent_analysis_duration, agent_analysis_total
+from zhinengti.metrics import agent_analysis_duration, agent_analysis_total, llm_call_latency, llm_call_total
 
 
 class AgentStatus(str, Enum):
@@ -58,7 +58,7 @@ class AgentBase(ABC):
     name: str = ""
     description: str = ""
 
-    def __init__(self, llm_client=None, tools: Optional[dict] = None):
+    def __init__(self, llm_client=None, tools: dict | None = None):
         """
         Args:
             llm_client: LLM 客户端（默认从环境变量创建）
@@ -109,7 +109,7 @@ class AgentBase(ABC):
             raise
 
     @staticmethod
-    def _parse_response(response: str, defaults: Optional[dict] = None) -> dict:
+    def _parse_response(response: str, defaults: dict | None = None) -> dict:
         """P2-4: 统一的 LLM JSON 响应解析（消除 5 处重复代码）。"""
         try:
             return json.loads(response)

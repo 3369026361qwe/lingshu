@@ -9,16 +9,18 @@ Usage:
     python scripts/backfill_fusion_scores.py --top-n 100    # 每日 Top 100
     python scripts/backfill_fusion_scores.py --dry-run      # 仅检查缺口，不写入
 """
-import sys, os, time, argparse
-from pathlib import Path
+import argparse
+import sys
+import time
 from collections import defaultdict
 
 try: sys.stdout.reconfigure(encoding='utf-8')
 except: pass
 
-from shujuku.session import SessionContext
 from sqlalchemy import text
+
 from juece.factor_fusion import FactorFusion
+from shujuku.session import SessionContext
 
 parser = argparse.ArgumentParser(description='自动补齐 fusion_score 缺口')
 parser.add_argument('--top-n', type=int, default=40, help='每日保留前 N 只股票 (默认 40)')
@@ -99,7 +101,7 @@ with SessionContext() as s:
     )).scalar()
     fs_rows = s.execute(text('SELECT COUNT(*) FROM fusion_score')).scalar()
 
-    print(f'\n  补齐完成:')
+    print('\n  补齐完成:')
     print(f'    fusion_score 日期: {fs_before} -> {fs_after} (+{fs_after-fs_before})')
     print(f'    fusion_score 行数: {fs_rows:,} (+{total_new})')
     print(f'    耗时: {time.time()-t0:.0f}s')

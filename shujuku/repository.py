@@ -13,21 +13,21 @@ Usage:
 
 import functools
 import time
-from contextlib import contextmanager
+from collections.abc import Sequence
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Generator, List, Optional, Sequence, Type, TypeVar
+from typing import Any, TypeVar
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from shujuku.metrics import db_degraded, db_errors_total, db_ops_latency, db_ops_total
 from shujuku.models import Base, utcnow
-from shujuku.models.market_models import DailyBar, FinancialReport, IndustryClassification, StockInfo
-from shujuku.models.yinzi_models import FactorICRecord, FactorValue, FactorWeight
-from shujuku.models.zhinengti_models import AgentEvidence, AgentReport
-from shujuku.models.jiaoyi_models import Order, PortfolioSnapshot, Position, Trade
-from shujuku.models.fengkong_models import CircuitBreakerEvent, RiskLog, VaRRecord
-from shujuku.metrics import db_ops_total, db_ops_latency, db_errors_total, db_degraded
+from shujuku.models.fengkong_models import CircuitBreakerEvent, RiskLog
+from shujuku.models.jiaoyi_models import Position
+from shujuku.models.market_models import DailyBar, StockInfo
+from shujuku.models.yinzi_models import FactorValue, FactorWeight
+from shujuku.models.zhinengti_models import AgentReport
 
 T = TypeVar("T", bound=Base)
 
@@ -98,7 +98,7 @@ class Repository:
         self._session.flush()
 
     @_track_db("select", "generic")
-    def get(self, model: Type[T], pk: Any) -> Optional[T]:
+    def get(self, model: type[T], pk: Any) -> T | None:
         """按主键查询。"""
         try:
             return self._session.get(model, pk)
@@ -107,7 +107,7 @@ class Repository:
             return None
 
     @_track_db("select", "generic")
-    def get_all(self, model: Type[T], limit: int = 1000) -> List[T]:
+    def get_all(self, model: type[T], limit: int = 1000) -> list[T]:
         """查询全部记录（带上限）。"""
         try:
             stmt = select(model).limit(limit)
@@ -116,7 +116,7 @@ class Repository:
             return []
 
     @_track_db("select", "generic")
-    def count(self, model: Type[T]) -> int:
+    def count(self, model: type[T]) -> int:
         """查询记录数。"""
         try:
             stmt = select(func.count()).select_from(model)
@@ -126,7 +126,7 @@ class Repository:
 
     # ── 股票信息 ────────────────────────────────────────────
 
-    def get_active_stocks(self) -> List[StockInfo]:
+    def get_active_stocks(self) -> list[StockInfo]:
         """获取所有活跃股票。"""
         try:
             stmt = select(StockInfo).where(StockInfo.is_active == True).order_by(StockInfo.code)  # noqa: E712
@@ -134,7 +134,7 @@ class Repository:
         except Exception:
             return []
 
-    def get_stock_by_code(self, code: str) -> Optional[StockInfo]:
+    def get_stock_by_code(self, code: str) -> StockInfo | None:
         """按代码查询股票。"""
         return self.get(StockInfo, code)
 
@@ -158,7 +158,7 @@ class Repository:
 
     # ── 日线行情 ────────────────────────────────────────────
 
-    def get_daily_bar(self, code: str, trade_date: date) -> Optional[DailyBar]:
+    def get_daily_bar(self, code: str, trade_date: date) -> DailyBar | None:
         """查询单日行情。"""
         try:
             stmt = (
@@ -170,7 +170,7 @@ class Repository:
         except Exception:
             return None
 
-    def get_daily_bars(self, code: str, start: date, end: date) -> List[DailyBar]:
+    def get_daily_bars(self, code: str, start: date, end: date) -> list[DailyBar]:
         """查询日期范围内的日线数据。"""
         try:
             stmt = (
@@ -184,7 +184,7 @@ class Repository:
         except Exception:
             return []
 
-    def get_bars_for_date(self, trade_date: date) -> List[DailyBar]:
+    def get_bars_for_date(self, trade_date: date) -> list[DailyBar]:
         """获取全市场某日行情。"""
         try:
             stmt = select(DailyBar).where(DailyBar.trade_date == trade_date)
@@ -243,7 +243,7 @@ class Repository:
                 percentile=percentile,
             )
 
-    def get_factor_values(self, code: str, factor_name: str, start: date, end: date) -> List[FactorValue]:
+    def get_factor_values(self, code: str, factor_name: str, start: date, end: date) -> list[FactorValue]:
         """查询某股票某因子的历史值。"""
         try:
             stmt = (
@@ -313,7 +313,7 @@ class Repository:
         self.add(report)
         return report
 
-    def get_latest_agent_reports(self, agent_id: str | None = None, limit: int = 10) -> List[AgentReport]:
+    def get_latest_agent_reports(self, agent_id: str | None = None, limit: int = 10) -> list[AgentReport]:
         """获取最新的 Agent 报告。"""
         try:
             stmt = select(AgentReport).order_by(AgentReport.analysis_date.desc()).limit(limit)
@@ -325,7 +325,7 @@ class Repository:
 
     # ── 交易 ────────────────────────────────────────────────
 
-    def get_position(self, code: str) -> Optional[Position]:
+    def get_position(self, code: str) -> Position | None:
         """查询单只持仓（按股票代码）。"""
         try:
             stmt = select(Position).where(Position.code == code)
@@ -334,7 +334,7 @@ class Repository:
             self._set_degraded()
             return None
 
-    def get_all_positions(self) -> List[Position]:
+    def get_all_positions(self) -> list[Position]:
         """获取全部持仓。"""
         try:
             stmt = select(Position).where(Position.quantity > 0)

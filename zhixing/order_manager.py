@@ -1,9 +1,8 @@
 """订单管理器 — 订单生命周期（创建→提交→成交→取消）+ A股规则。"""
 import uuid
 from datetime import datetime, timezone
-from decimal import Decimal, ROUND_DOWN
+from decimal import Decimal
 from enum import Enum
-from typing import Optional
 
 from zhixing.metrics import orders_created, orders_filled, orders_rejected
 
@@ -21,7 +20,7 @@ class Order:
         self.order_id = uuid.uuid4().hex[:16]
         self.code = code; self.direction = direction; self.quantity = quantity; self.price = price
         self.order_type = order_type; self.status = OrderStatus.PENDING; self.filled_qty = 0
-        self.filled_avg_price: Optional[Decimal] = None; self.reason = reason
+        self.filled_avg_price: Decimal | None = None; self.reason = reason
         self.created_at = datetime.now(timezone.utc); self.updated_at = self.created_at
 
     def fill(self, qty: int, price: Decimal) -> None:
@@ -72,7 +71,7 @@ class OrderManager:
         orders_created.labels(direction=direction).inc()
         return order
 
-    def get(self, order_id: str) -> Optional[Order]:
+    def get(self, order_id: str) -> Order | None:
         return self._orders.get(order_id)
 
     def fill(self, order_id: str, qty: int, price: Decimal) -> Order:

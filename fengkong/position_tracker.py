@@ -1,7 +1,6 @@
 """实时持仓追踪器。"""
-from decimal import Decimal
 from datetime import datetime, timezone
-from typing import Optional
+from decimal import Decimal
 
 
 class PositionTracker:
@@ -11,11 +10,11 @@ class PositionTracker:
         self._positions: dict[str, dict] = {}
         self._snapshots: list[dict] = []
 
-    def update(self, code: str, quantity: int, avg_cost: Decimal, current_price: Optional[Decimal] = None, industry: Optional[str] = None) -> None:
+    def update(self, code: str, quantity: int, avg_cost: Decimal, current_price: Decimal | None = None, industry: str | None = None) -> None:
         mv = Decimal(str(quantity)) * current_price if current_price else None
         self._positions[code] = {"code": code, "quantity": quantity, "avg_cost": avg_cost, "current_price": current_price, "market_value": mv, "industry": industry, "updated_at": datetime.now(timezone.utc)}
 
-    def get(self, code: str) -> Optional[dict]:
+    def get(self, code: str) -> dict | None:
         return self._positions.get(code)
 
     def snapshot(self, total_capital: Decimal) -> list[dict]:

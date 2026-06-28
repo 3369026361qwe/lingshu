@@ -6,7 +6,6 @@
 
 import logging
 import time as _time
-from typing import Optional
 
 import numpy as np
 
@@ -64,7 +63,7 @@ class GraphInference:
         self,
         graph_data: dict,
         factor_data: dict[str, dict],
-        feature_order: Optional[list[str]] = None,
+        feature_order: list[str] | None = None,
     ) -> dict[str, float]:
         """一步式推理：从图数据 + 因子数据 → GNN 增强得分。
 
@@ -107,9 +106,10 @@ def load_gnn_checkpoint(model_path: str, device: str = 'cpu') -> dict:
         {model, model_type, stock_codes, edge_index, features, hidden_dim, dropout}
         若文件不存在返回空 dict。
     """
+    from pathlib import Path
+
     import torch
     import torch.nn.functional as F
-    from pathlib import Path
 
     if not Path(model_path).exists():
         return {}
@@ -191,9 +191,10 @@ def run_gnn_inference(checkpoint: dict, factor_data: dict, device: str = 'cpu') 
     Returns:
         {date: {code: gnn_score}}
     """
-    import torch
-    import numpy as np
     from math import isnan
+
+    import numpy as np
+    import torch
 
     model = checkpoint['model']
     if model is None:

@@ -7,12 +7,11 @@ from decimal import Decimal
 import numpy as np
 import pytest
 
-from tushenjing.graph_utils import GraphUtils
+from tushenjing.gnn_model import GATModel, GCNModel, create_model
 from tushenjing.graph_builder import GraphBuilder
-from tushenjing.gnn_model import GCNModel, GATModel, create_model
 from tushenjing.graph_inference import GraphInference
 from tushenjing.graph_updater import GraphUpdater
-
+from tushenjing.graph_utils import GraphUtils
 
 # ── 测试数据工厂 ─────────────────────────────────────
 

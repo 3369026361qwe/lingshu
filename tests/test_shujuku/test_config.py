@@ -5,14 +5,12 @@
 模块级 fixture 在所有测试完成后恢复原始 config 状态，防止污染其他测试文件。
 """
 
-import copy
 import importlib
 import os
 
 import pytest
 
 import shujuku.config as _config_module
-
 
 # ── 保存/恢复 config 模块状态 ──────────────────────────
 

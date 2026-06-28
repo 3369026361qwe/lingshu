@@ -1,11 +1,13 @@
 """juece 跨模块集成测试: 因子→融合→选股→优化→持久化 完整链路。"""
 from decimal import Decimal
+
 import pytest
-from shujuku.session import init_db, SessionContext
-from shujuku.repository import Repository
+
 from juece.ensemble_engine import EnsembleEngine
-from juece.stock_selector import StockSelector
 from juece.portfolio_optimizer import PortfolioOptimizer
+from juece.stock_selector import StockSelector
+from shujuku.repository import Repository
+from shujuku.session import SessionContext, init_db
 
 
 @pytest.fixture(autouse=True)
@@ -65,7 +67,7 @@ class TestFullPipeline:
 class TestICWeightUpdate:
     def test_ic_driven_weight_evolution(self):
         engine = EnsembleEngine()
-        initial_w = engine.weights["factor"]
+        engine.weights["factor"]
 
         # 模拟 GNN IC 持续提升
         for t in range(20):

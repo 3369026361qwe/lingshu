@@ -4,8 +4,7 @@ yinzi 因子引擎 Prometheus 指标。
 复用全局 REGISTRY，指标名统一使用 lingshu_ 前缀。
 """
 
-from prometheus_client import Counter, Gauge, Histogram
-from prometheus_client import REGISTRY
+from prometheus_client import REGISTRY, Counter, Gauge, Histogram
 
 # ── 因子计算指标 ─────────────────────────────────────
 

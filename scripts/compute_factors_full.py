@@ -11,13 +11,17 @@
 目标: 35 因子 × 709 股票 × 1312 天 ≈ 3,260 万条记录
 预计耗时: ~2 小时
 """
-import csv, json, time, os, sys
-from pathlib import Path
+import csv
+import json
+import sys
+import time
 from collections import defaultdict
 from decimal import Decimal
-from math import isnan, isinf
+from math import isinf, isnan
+from pathlib import Path
 
 from dotenv import load_dotenv
+
 load_dotenv(Path('E:/28721/lingshu/.env'))
 
 sys.stdout.reconfigure(encoding='utf-8')
@@ -29,7 +33,7 @@ base = Path('E:/28721/lingshu/data')
 print('Loading daily data from CSV...')
 t0 = time.time()
 
-with open(base / 'hs800_daily_all.csv', 'r', encoding='utf-8-sig') as f:
+with open(base / 'hs800_daily_all.csv', encoding='utf-8-sig') as f:
     raw_rows = list(csv.DictReader(f))
 
 # Build: {code: {trade_date: {bar_dict}}}
@@ -51,7 +55,7 @@ print(f'  Memory load: {time.time()-t0:.1f}s')
 # ═══════════════════════════════════════════════════════════
 # 2. Load financial data
 # ═══════════════════════════════════════════════════════════
-with open(base / 'financial_data.json', 'r', encoding='utf-8') as f:
+with open(base / 'financial_data.json', encoding='utf-8') as f:
     fin_raw = json.load(f)
 fin_map = {}
 for code, d in fin_raw.items():
@@ -61,12 +65,31 @@ for code, d in fin_raw.items():
 # 3. Build factor engine
 # ═══════════════════════════════════════════════════════════
 from yinzi.engine import create_default_engine
+
 engine = create_default_engine(max_workers=8)
 
 # Register Alpha factors
-from yinzi.alpha_factors import (ROCFactor, STDFactor, CORRFactor, MAXFactor, MINFactor,
-    VMAFactor, VSTDFactor, CNTPFactor, BETAFactor, RSQRFactor, RANKFactor,
-    SKEWFactor, KURTFactor, TURNFactor, AMPFactor, VWAPFactor, HLSpreadFactor, OCFactor)
+from yinzi.alpha_factors import (
+    AMPFactor,
+    BETAFactor,
+    CNTPFactor,
+    CORRFactor,
+    HLSpreadFactor,
+    KURTFactor,
+    MAXFactor,
+    MINFactor,
+    OCFactor,
+    RANKFactor,
+    ROCFactor,
+    RSQRFactor,
+    SKEWFactor,
+    STDFactor,
+    TURNFactor,
+    VMAFactor,
+    VSTDFactor,
+    VWAPFactor,
+)
+
 alpha_cls = [ROCFactor, STDFactor, CORRFactor, MAXFactor, MINFactor, VMAFactor, VSTDFactor,
              CNTPFactor, BETAFactor, RSQRFactor, RANKFactor, SKEWFactor, KURTFactor,
              TURNFactor, AMPFactor, VWAPFactor, HLSpreadFactor, OCFactor]
@@ -83,8 +106,9 @@ print(f'Factors registered: {engine.factor_count}')
 # ═══════════════════════════════════════════════════════════
 # 4. Identify target dates (skip already-computed)
 # ═══════════════════════════════════════════════════════════
-from shujuku.session import SessionContext
 from sqlalchemy import text
+
+from shujuku.session import SessionContext
 
 LOOKBACK = 180  # 回看窗口天数
 
@@ -116,7 +140,7 @@ total_dates_done = 0
 t_start = time.time()
 
 print(f'\n{"="*60}')
-print(f'  Full Factor Computation')
+print('  Full Factor Computation')
 print(f'  {len(target_dates)} dates × ~{len(codes_all)} stocks × {engine.factor_count} factors')
 print(f'  Estimated: ~{len(target_dates) * engine.factor_count * len(codes_all) / 1e6:.0f}M rows')
 print(f'{"="*60}\n')
@@ -212,7 +236,7 @@ with SessionContext() as s:
 
 total_elapsed = time.time() - t_start
 print(f'\n{"="*60}')
-print(f'  Factor Computation Complete')
+print('  Factor Computation Complete')
 print(f'  {"="*60}')
 print(f'  Dates processed:   {total_dates_done}')
 print(f'  Total rows:        {final_count:,} ({final_count/1e6:.1f}M)')

@@ -21,8 +21,8 @@ class ReportGenerator:
             f"生成时间: {datetime.now(timezone.utc).isoformat()}",
             "",
             "## 绩效指标",
-            f"| 指标 | 数值 |",
-            f"|------|------|",
+            "| 指标 | 数值 |",
+            "|------|------|",
             f"| 累计收益率 | {m.get('total_return', 'N/A'):.2%} |" if isinstance(m.get('total_return'), float) else f"| 累计收益率 | {m.get('total_return', 'N/A')} |",
             f"| 年化收益率 | {m.get('annualized_return', 'N/A')} |",
             f"| 年化波动率 | {m.get('annualized_vol', 'N/A')} |",
@@ -32,9 +32,9 @@ class ReportGenerator:
             f"| 交易天数 | {m.get('n_days', 'N/A')} |",
             "",
             "## 配置",
-            f"```json",
+            "```json",
             json.dumps({k: str(v) for k, v in report.get("config", {}).items() if k not in ("data_loader", "signal_generator", "executor")}, ensure_ascii=False, indent=2),
-            f"```",
+            "```",
         ]
         return "\n".join(lines)
 

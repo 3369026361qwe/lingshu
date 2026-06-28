@@ -2,7 +2,6 @@
 赛道分析师 Agent — 行业比较和板块轮动分析。
 """
 
-import json
 import time
 from datetime import datetime
 from decimal import Decimal

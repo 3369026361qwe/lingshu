@@ -6,21 +6,24 @@ Usage:
     python scripts/compute_factors_from_db.py              # 全量计算
     python scripts/compute_factors_from_db.py --days 60    # 仅最近 60 天
 """
-import sys, os, time, argparse
-from pathlib import Path
+import argparse
+import sys
+import time
 from collections import defaultdict
-from decimal import Decimal
-from math import isnan, isinf, sqrt
+from math import isinf, isnan
+from pathlib import Path
 
 try: sys.stdout.reconfigure(encoding='utf-8')
 except: pass
 
 from dotenv import load_dotenv
+
 load_dotenv(Path(__file__).resolve().parent.parent / '.env')
 
-from shujuku.session import SessionContext
-from sqlalchemy import text
 import numpy as np
+from sqlalchemy import text
+
+from shujuku.session import SessionContext
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--days', type=int, default=0, help='仅计算最近 N 天，0=全量')
@@ -238,8 +241,8 @@ for di, trade_date in enumerate(new_dates):
 # ── 总结 ─────────────────────────────────────────────
 
 total_time = time.time() - t0
-print(f'\n[OK] 因子计算完成')
+print('\n[OK] 因子计算完成')
 print(f'  计算日期: {len(new_dates)} 天')
 print(f'  因子条目: {total_factors:,}')
 print(f'  总耗时: {total_time:.0f}s')
-print(f'  下一步: python scripts/run_daily_pipeline.py')
+print('  下一步: python scripts/run_daily_pipeline.py')

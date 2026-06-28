@@ -1,8 +1,9 @@
 """模拟券商 — A股规则模拟 (T+1/涨跌停/最小手续费/滑点)。"""
 import logging
 from decimal import Decimal
-from zhixing.order_manager import Order, OrderStatus
-from zhixing.metrics import broker_trades_total, broker_commission_total
+
+from zhixing.metrics import broker_commission_total, broker_trades_total
+from zhixing.order_manager import Order
 
 _logger = logging.getLogger(__name__)
 

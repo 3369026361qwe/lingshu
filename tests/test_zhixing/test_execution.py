@@ -1,9 +1,11 @@
 """测试交易执行: 订单管理/批量执行/模拟券商/成交记录。"""
 from decimal import Decimal
+
 import pytest
-from zhixing.order_manager import OrderManager, OrderStatus
+
 from zhixing.batch_executor import BatchExecutor
 from zhixing.mock_broker import MockBroker
+from zhixing.order_manager import OrderManager, OrderStatus
 from zhixing.trade_recorder import TradeRecorder
 
 

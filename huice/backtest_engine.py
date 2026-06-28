@@ -1,10 +1,8 @@
 """事件驱动回测引擎 — 每日推进+调仓+记录+实验追踪。"""
-import json
-import uuid
 import time as _time
-from datetime import datetime, timezone, date
+import uuid
+from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Optional
 
 from huice.performance_metrics import PerformanceMetrics
 
@@ -41,7 +39,7 @@ class BacktestEngine:
         daily_records = []
         trades = []
 
-        for i, trade_date in enumerate(dates):
+        for _i, trade_date in enumerate(dates):
             # 获取当日行情
             market_data = config["data_loader"].load_market_data(trade_date)
             if not market_data:
@@ -117,8 +115,9 @@ class BacktestEngine:
     def _persist(self, report: dict) -> None:
         """持久化实验报告到数据库。ON CONFLICT DO NOTHING 保护已有快照。"""
         try:
-            from shujuku.session import SessionContext
             from sqlalchemy import text
+
+            from shujuku.session import SessionContext
 
             with SessionContext() as s:
                 for rec in self._records:
@@ -161,9 +160,11 @@ class BacktestEngine:
                 "win_rate": m.get("win_rate"),
             })
             if m.get("sharpe", -999) and float(m["sharpe"]) > best_sharpe:
-                best_sharpe = float(m["sharpe"]); comparison["best_sharpe"] = r["experiment_id"]
+                best_sharpe = float(m["sharpe"])
+                comparison["best_sharpe"] = r["experiment_id"]
             if m.get("total_return", -999) and float(m["total_return"]) > best_return:
-                best_return = float(m["total_return"]); comparison["best_return"] = r["experiment_id"]
+                best_return = float(m["total_return"])
+                comparison["best_return"] = r["experiment_id"]
         return comparison
 
     @property
@@ -216,12 +217,14 @@ class DBBacktestRunner:
         Returns:
             包含 metrics, daily_records, trades, risk_events, var_records 的报告
         """
-        from shujuku.session import SessionContext
-        from sqlalchemy import text
-        from collections import defaultdict
         import time as _time
+        from collections import defaultdict
         from math import sqrt
         from statistics import mean, stdev
+
+        from sqlalchemy import text
+
+        from shujuku.session import SessionContext
 
         t0 = _time.perf_counter()
 
@@ -258,7 +261,7 @@ class DBBacktestRunner:
                 fs_rows = s.execute(text(
                     f"SELECT trade_date, code, composite_score, rank FROM {table}{date_filter} ORDER BY trade_date, rank"
                 ), params).fetchall()
-                for td, code, sc, rk in fs_rows:
+                for _td, code, sc, _rk in fs_rows:
                     try:
                         signals_data[str(td)][code] = float(sc)
                     except Exception:
@@ -410,8 +413,9 @@ class DBBacktestRunner:
     def _persist_results(self, snapshots: list, risk_events: list, var_values: list) -> None:
         """持久化回测结果到 DB。INSERT ON CONFLICT DO NOTHING 保护已有数据。"""
         try:
-            from shujuku.session import SessionContext
             from sqlalchemy import text
+
+            from shujuku.session import SessionContext
 
             with SessionContext() as s:
                 snap_before = s.execute(text('SELECT COUNT(*) FROM portfolio_snapshot')).scalar()
