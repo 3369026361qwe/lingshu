@@ -43,6 +43,7 @@ for r in raw_rows:
     }
 
 all_dates = sorted(set(r['trade_date'] for r in raw_rows))
+date_index = {d: i for i, d in enumerate(all_dates)}
 codes_all = sorted(daily_map.keys())
 print(f'  Loaded: {len(raw_rows):,} rows | {len(codes_all)} stocks | {len(all_dates)} dates ({all_dates[0]}~{all_dates[-1]})')
 print(f'  Memory load: {time.time()-t0:.1f}s')
@@ -95,7 +96,7 @@ with SessionContext() as s:
     print(f'Already computed: {len(existing_dates)} dates')
 
 # Dates we can compute (need LOOKBACK days of history)
-target_dates = [d for d in all_dates if all_dates.index(d) >= LOOKBACK]
+target_dates = [d for d in all_dates if date_index[d] >= LOOKBACK]
 print(f'Target dates: {len(target_dates)} (from {target_dates[0]} to {target_dates[-1]})')
 
 # Filter out already-computed
@@ -133,7 +134,7 @@ with SessionContext() as s:
         dt0 = time.time()
 
         # Get index of target_date
-        tdi = all_dates.index(target_date)
+        tdi = date_index[target_date]
 
         # Build lookback window
         window_dates = set(all_dates[max(0, tdi - LOOKBACK):tdi + 1])

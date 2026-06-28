@@ -44,6 +44,7 @@ with open(BASE / 'hs800_daily_all.csv', 'r', encoding='utf-8-sig') as f:
     raw_rows = list(csv.DictReader(f))
 
 all_dates = sorted(set(r['trade_date'] for r in raw_rows))
+date_index = {d: i for i, d in enumerate(all_dates)}
 
 # Close price map
 close_map = defaultdict(dict)
@@ -101,7 +102,7 @@ forward_rets = {h: {} for h in FORWARD_HORIZONS}
 for mdate in fv_dates:
     if mdate not in all_dates:
         continue
-    mdi = all_dates.index(mdate)
+    mdi = date_index[mdate]
     for h in FORWARD_HORIZONS:
         future_idx = min(mdi + h, len(all_dates) - 1)
         future_date = all_dates[future_idx]

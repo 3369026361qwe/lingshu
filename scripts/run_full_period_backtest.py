@@ -261,6 +261,7 @@ def main():
     for c, td, cl in pr_rows:
         close_map[c][str(td)] = float(cl)
     all_dates = sorted(set(str(r[1]) for r in pr_rows))
+    date_index = {d: i for i, d in enumerate(all_dates)}
 
     factor_scores = defaultdict(dict)
     for td, c, sc in fs_rows:
@@ -303,7 +304,7 @@ def main():
     # Agent proxy: 市场动量信号
     agent_signals = {}
     for di, td in enumerate(test_dates):
-        mdi = all_dates.index(td) if td in all_dates else -1
+        mdi = date_index.get(td, -1)
         if mdi >= 20:
             ret_20d = 0
             sample_codes = list(close_map.keys())[:100]

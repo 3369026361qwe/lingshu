@@ -41,6 +41,7 @@ with open(BASE / 'hs800_daily_all.csv', 'r', encoding='utf-8-sig') as f:
     raw_rows = list(csv.DictReader(f))
 
 all_dates = sorted(set(r['trade_date'] for r in raw_rows))
+date_index = {d: i for i, d in enumerate(all_dates)}
 
 # Build close price map: {code: {date: close}}
 close_map = defaultdict(dict)
@@ -86,7 +87,7 @@ t0 = time.time()
 # For each measurement date, compute FORWARD_DAYS forward return
 forward_returns = {}  # {date: {code: return}}
 for di, mdate in enumerate(fv_dates):
-    mdi = all_dates.index(mdate) if mdate in all_dates else -1
+    mdi = date_index.get(mdate, -1)
     if mdi < 0:
         continue
     future_idx = min(mdi + FORWARD_DAYS, len(all_dates) - 1)

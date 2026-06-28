@@ -91,6 +91,7 @@ def main():
     for code, td, cl in pr_rows:
         close_map[code][str(td)] = float(cl)
     all_dates = sorted(set(str(r[1]) for r in pr_rows))
+    date_index = {d: i for i, d in enumerate(all_dates)}
 
     factor_by_date = defaultdict(lambda: defaultdict(dict))
     for code, td, fn, rv in fv_rows:
@@ -108,7 +109,7 @@ def main():
         stock_codes, factor_by_date, TOP_FACTORS, industry_map,
         k_neighbors=args.k_neighbors, n_dates=200,
     )
-    edge_index = torch.tensor([[s, d] for s, d in edges], dtype=torch.long).t().contiguous()
+    edge_index = torch.from_numpy(np.array(edges, dtype=np.int64)).t().contiguous()
     print(f'  {n_stocks} nodes | {len(edges):,} edges ({len(edges) // n_stocks}/stock) | ({time.time() - t0:.1f}s)')
 
     # 3 ── 构建特征/标签 ──
@@ -118,7 +119,7 @@ def main():
     for mdate in fv_dates:
         if mdate not in all_dates:
             continue
-        mdi = all_dates.index(mdate)
+        mdi = date_index[mdate]
         fi = min(mdi + FORWARD_DAYS, len(all_dates) - 1)
         fd = all_dates[fi]
         feats = np.zeros((n_stocks, len(TOP_FACTORS)), dtype=np.float32)
