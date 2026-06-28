@@ -15,6 +15,10 @@ from tushenjing.gnn_numpy import (
     _xavier_init,
     _xavier_init_stack,
     _map_pyg_to_numpy,
+    _map_pyg_gcn_to_numpy,
+    _map_pyg_gat_to_numpy,
+    _resolve_lin_key,
+    _extract_attention_param,
     load_pyg_checkpoint_to_numpy,
 )
 
@@ -307,3 +311,114 @@ class TestNumpyPyGParity:
             assert not np.any(np.isnan(np_out))
         except ImportError:
             pytest.skip("torch_geometric not available")
+
+
+# ── 拆分后辅助函数测试 ─────────────────────────────────────
+
+class TestRefactoredMapping:
+    """测试 P3 重构拆分出的独立函数。"""
+
+    def test_map_pyg_gcn_direct(self):
+        """直接调用 _map_pyg_gcn_to_numpy。"""
+        try:
+            import torch
+            state_dict = {
+                "conv1.lin.weight": torch.randn(64, 20),
+                "conv1.bias": torch.randn(64),
+                "conv2.lin.weight": torch.randn(1, 64),
+                "conv2.bias": torch.randn(1),
+            }
+            result = _map_pyg_gcn_to_numpy(state_dict)
+            assert "W1" in result
+            assert result["W1"].shape == (20, 64)
+            assert "b1" in result
+            assert "W2" in result
+            assert result["W2"].shape == (64, 1)
+            assert "b2" in result
+        except ImportError:
+            pytest.skip("torch not available")
+
+    def test_map_pyg_gat_direct(self):
+        """直接调用 _map_pyg_gat_to_numpy。"""
+        try:
+            import torch
+            state_dict = {
+                "conv1.lin_src.weight": torch.randn(8, 20),
+                "conv1.att_src": torch.randn(8),
+                "conv1.att_dst": torch.randn(8),
+                "conv2.lin_src.weight": torch.randn(1, 8),
+            }
+            result = _map_pyg_gat_to_numpy(state_dict, heads=1)
+            assert "W_0" in result
+            assert result["W_0"].shape == (20, 8)
+            assert "a_left_0" in result
+            assert "a_right_0" in result
+            assert "W_out" in result
+        except ImportError:
+            pytest.skip("torch not available")
+
+    def test_map_pyg_dispatcher_gcn(self):
+        """分发器 _map_pyg_to_numpy 对 GCN 正确路由。"""
+        try:
+            import torch
+            state_dict = {
+                "conv1.lin.weight": torch.randn(32, 10),
+                "conv1.bias": torch.randn(32),
+            }
+            result = _map_pyg_to_numpy(state_dict, "GCN", heads=1)
+            assert "W1" in result
+            assert "b1" in result
+        except ImportError:
+            pytest.skip("torch not available")
+
+    def test_map_pyg_dispatcher_unknown(self):
+        """分发器对未知 model_type 返回空字典。"""
+        result = _map_pyg_to_numpy({}, "TRANSFORMER", heads=4)
+        assert result == {}
+
+    def test_resolve_lin_key_src(self):
+        """_resolve_lin_key: lin_src 存在时返回它。"""
+        try:
+            import torch
+            state_dict = {"conv1.lin_src.weight": torch.randn(8, 20)}
+            result = _resolve_lin_key(state_dict, "conv1", "lin_src", "lin")
+            assert result is not None
+            assert result.shape == (8, 20)
+        except ImportError:
+            pytest.skip("torch not available")
+
+    def test_resolve_lin_key_fallback(self):
+        """_resolve_lin_key: lin_src 不存在时回退到 lin。"""
+        try:
+            import torch
+            state_dict = {"conv2.lin.weight": torch.randn(1, 8)}
+            result = _resolve_lin_key(state_dict, "conv2", "lin_src", "lin")
+            assert result is not None
+            assert result.shape == (1, 8)
+        except ImportError:
+            pytest.skip("torch not available")
+
+    def test_extract_attention_param_1d(self):
+        """_extract_attention_param: 1D attention 向量。"""
+        try:
+            import torch
+            state_dict = {"conv1.att_src": torch.randn(8)}
+            snapshot = {}
+            _extract_attention_param(state_dict, "conv1", "att_src", 0, 1, "a_left_0", snapshot)
+            assert "a_left_0" in snapshot
+            assert snapshot["a_left_0"].ndim == 2
+            assert snapshot["a_left_0"].shape[1] == 1
+        except ImportError:
+            pytest.skip("torch not available")
+
+    def test_extract_attention_param_3d(self):
+        """_extract_attention_param: 3D [edge_types=1, heads, hidden]。"""
+        try:
+            import torch
+            state_dict = {"conv1.att_src": torch.randn(1, 4, 8)}
+            snapshot = {}
+            _extract_attention_param(state_dict, "conv1", "att_src", 2, 4, "a_left_2", snapshot)
+            assert "a_left_2" in snapshot
+            assert snapshot["a_left_2"].ndim == 2
+        except ImportError:
+            pytest.skip("torch not available")

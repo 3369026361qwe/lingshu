@@ -232,63 +232,79 @@ def load_pyg_checkpoint_to_numpy(checkpoint_path: str) -> dict:
 
 
 def _map_pyg_to_numpy(state_dict: dict, model_type: str, heads: int) -> dict:
-    """将 PyG state_dict 映射为 NumPy 模型的权重快照。
+    """将 PyG state_dict 映射为 NumPy 模型的权重快照（分发器）。
 
-    PyG GCNConv 参数:
-      conv1.lin.weight → W1  [hidden_dim, in_dim] → 转置后 [in_dim, hidden_dim]
-      conv1.bias → b1      [hidden_dim]
-
-    PyG GATConv 参数 (per head):
-      conv1.lin_src.weight  → W_0  (第 0 头的 W)
-      conv1.att_src         → a_left_0
-      conv1.att_dst         → a_right_0
+    委托给 _map_pyg_gcn_to_numpy 或 _map_pyg_gat_to_numpy。
     """
+    if model_type == 'GCN':
+        return _map_pyg_gcn_to_numpy(state_dict)
+    elif model_type == 'GAT':
+        return _map_pyg_gat_to_numpy(state_dict, heads)
+    return {}
+
+
+def _map_pyg_gcn_to_numpy(state_dict: dict) -> dict:
+    """GCNConv → NumPy: conv1.lin.weight→W1, conv1.bias→b1, conv2.* → W2/b2."""
     snapshot = {}
     try:
-        import torch
-
-        if model_type == 'GCN':
-            # conv1.lin.weight: [hidden_dim, in_dim] → NumPy [in_dim, hidden_dim]
-            if 'conv1.lin.weight' in state_dict:
-                snapshot['W1'] = state_dict['conv1.lin.weight'].cpu().numpy().T.astype(np.float32)
-            if 'conv1.bias' in state_dict:
-                snapshot['b1'] = state_dict['conv1.bias'].cpu().numpy().astype(np.float32)
-            if 'conv2.lin.weight' in state_dict:
-                snapshot['W2'] = state_dict['conv2.lin.weight'].cpu().numpy().T.astype(np.float32)
-            if 'conv2.bias' in state_dict:
-                snapshot['b2'] = state_dict['conv2.bias'].cpu().numpy().astype(np.float32)
-
-        elif model_type == 'GAT':
-            # Per-head mapping — PyG 2.x 用 conv1.lin.weight (不是 konv1.lin_src)
-            lin_key = 'conv1.lin_src.weight' if 'conv1.lin_src.weight' in state_dict else 'conv1.lin.weight'
-            hd = state_dict.get(lin_key)
-            if hd is not None:
-                hd = hd.cpu().numpy()
-                # GATConv stores [heads * hidden, in_dim]
-                per_head_dim = hd.shape[0] // heads
-                for k in range(heads):
-                    snapshot[f'W_{k}'] = hd[k * per_head_dim:(k + 1) * per_head_dim, :].T.astype(np.float32)
-
-            for k in range(heads):
-                for src_dst, key in [('att_src', f'a_left_{k}'), ('att_dst', f'a_right_{k}')]:
-                    ak = f'conv1.{src_dst}'
-                    if ak in state_dict:
-                        ak_data = state_dict[ak].cpu().numpy()
-                        if ak_data.ndim == 1:
-                            snapshot[key] = ak_data.reshape(-1, 1).astype(np.float32)
-                        elif ak_data.ndim == 3:
-                            # PyG >=2.5: [num_edge_types=1, heads, hidden]
-                            snapshot[key] = ak_data[0, k, :].reshape(-1, 1).astype(np.float32)
-                        else:
-                            per_h = ak_data.shape[0] // heads
-                            snapshot[key] = ak_data[k * per_h:(k + 1) * per_h].reshape(-1, 1).astype(np.float32)
-
-            # Output projection — PyG 2.x 用 conv2.lin.weight (不是 conv2.lin_src)
-            w_out_key = 'conv2.lin_src.weight' if 'conv2.lin_src.weight' in state_dict else 'conv2.lin.weight'
-            if w_out_key in state_dict:
-                snapshot['W_out'] = state_dict[w_out_key].cpu().numpy().T.astype(np.float32)
-
+        if 'conv1.lin.weight' in state_dict:
+            snapshot['W1'] = state_dict['conv1.lin.weight'].cpu().numpy().T.astype(np.float32)
+        if 'conv1.bias' in state_dict:
+            snapshot['b1'] = state_dict['conv1.bias'].cpu().numpy().astype(np.float32)
+        if 'conv2.lin.weight' in state_dict:
+            snapshot['W2'] = state_dict['conv2.lin.weight'].cpu().numpy().T.astype(np.float32)
+        if 'conv2.bias' in state_dict:
+            snapshot['b2'] = state_dict['conv2.bias'].cpu().numpy().astype(np.float32)
     except Exception:
         return {}
-
     return snapshot if snapshot else {}
+
+
+def _map_pyg_gat_to_numpy(state_dict: dict, heads: int) -> dict:
+    """GATConv → NumPy: per-head W_k, a_left_k, a_right_k, W_out."""
+    snapshot = {}
+    try:
+        # Conv1 per-head weights
+        hd = _resolve_lin_key(state_dict, 'conv1', 'lin_src', 'lin')
+        if hd is not None:
+            per_head_dim = hd.shape[0] // heads
+            for k in range(heads):
+                snapshot[f'W_{k}'] = hd[k * per_head_dim:(k + 1) * per_head_dim, :].T.astype(np.float32)
+
+        # Per-head attention parameters
+        for k in range(heads):
+            for src_dst, snap_key in [('att_src', f'a_left_{k}'), ('att_dst', f'a_right_{k}')]:
+                _extract_attention_param(state_dict, 'conv1', src_dst, k, heads, snap_key, snapshot)
+
+        # Output projection
+        w_out = _resolve_lin_key(state_dict, 'conv2', 'lin_src', 'lin')
+        if w_out is not None:
+            snapshot['W_out'] = w_out.T.astype(np.float32)
+    except Exception:
+        return {}
+    return snapshot if snapshot else {}
+
+
+def _resolve_lin_key(state_dict: dict, layer: str, key_src: str, key_fallback: str):
+    """解析 PyG 版本兼容的线性层键名（回退：lin_src → lin）。返回 numpy 数组或 None。"""
+    for key in (f'{layer}.{key_src}.weight', f'{layer}.{key_fallback}.weight'):
+        if key in state_dict:
+            return state_dict[key].cpu().numpy()
+    return None
+
+
+def _extract_attention_param(state_dict: dict, layer: str, src_dst: str,
+                              k: int, heads: int, snap_key: str, snapshot: dict) -> None:
+    """提取单个注意力参数（1D/2D/3D 形状兼容），写入 snapshot。"""
+    ak = f'{layer}.{src_dst}'
+    if ak not in state_dict:
+        return
+    ak_data = state_dict[ak].cpu().numpy()
+    if ak_data.ndim == 1:
+        snapshot[snap_key] = ak_data.reshape(-1, 1).astype(np.float32)
+    elif ak_data.ndim == 3:
+        # PyG >=2.5: [num_edge_types=1, heads, hidden]
+        snapshot[snap_key] = ak_data[0, k, :].reshape(-1, 1).astype(np.float32)
+    else:
+        per_h = ak_data.shape[0] // heads
+        snapshot[snap_key] = ak_data[k * per_h:(k + 1) * per_h].reshape(-1, 1).astype(np.float32)

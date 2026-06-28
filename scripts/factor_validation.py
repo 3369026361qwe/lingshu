@@ -334,156 +334,20 @@ print('\n[7/7] Generating validation report...\n')
 # Scoring function
 def validate_factor(fname):
     """Return dict with all validation metrics and pass/fail flags."""
+    from yinzi.factor_scoring import (
+        _score_ic_20d, _score_ic_decay, _score_regime,
+        _score_monotonicity, _score_stability, compute_final_grade,
+    )
     result = {'name': fname, 'checks': {}, 'warnings': [], 'score': 0, 'max_score': 0}
 
-    # ---- Check 1: IC at 20d (weight: 30%) ----
-    result['max_score'] += 30
-    if fname in ic_decay_summary and 20 in ic_decay_summary[fname]:
-        stats = ic_decay_summary[fname][20]
-        ic_abs = abs(stats['mean_ic'])
-        t_abs = abs(stats['t_stat'])
-        result['checks']['ic_20d'] = f"|IC|={ic_abs:.4f}, |t|={t_abs:.1f}"
+    _score_ic_20d(result, ic_decay_summary, fname)
+    _score_ic_decay(result, ic_decay_summary, fname)
+    _score_regime(result, regime_summary, fname)
+    _score_monotonicity(result, monotonicity_scores, fname)
+    _score_stability(result, autocorr_summary, fname)
 
-        if ic_abs > 0.05 and t_abs > 3.0:
-            result['score'] += 30
-            result['checks']['ic_20d'] += ' ✓ STRONG'
-        elif ic_abs > 0.02 and t_abs > 2.0:
-            result['score'] += 20
-            result['checks']['ic_20d'] += ' ✓ PASS'
-        elif ic_abs > 0.01:
-            result['score'] += 10
-            result['checks']['ic_20d'] += ' ⚠ WEAK'
-            result['warnings'].append(f'IC_20d weak: |IC|={ic_abs:.4f}')
-        else:
-            result['checks']['ic_20d'] += ' ✗ FAIL'
-            result['warnings'].append(f'IC_20d fail: |IC|={ic_abs:.4f}')
-    else:
-        result['checks']['ic_20d'] = 'NO DATA'
-
-    # ---- Check 2: IC decay profile (weight: 20%) ----
-    result['max_score'] += 20
-    if fname in ic_decay_summary:
-        # Good decay: IC peaks at medium horizon (20d or 40d) and decays at 60d
-        ic_profile = {}
-        for h in FORWARD_HORIZONS:
-            if h in ic_decay_summary[fname]:
-                ic_profile[h] = abs(ic_decay_summary[fname][h]['mean_ic'])
-
-        if ic_profile:
-            # Check peak horizon
-            peak_h = max(ic_profile, key=ic_profile.get)
-            ic_peak = ic_profile[peak_h]
-            ic_5d = ic_profile.get(5, 0)
-            ic_60d = ic_profile.get(60, ic_peak)
-
-            result['checks']['ic_decay'] = f"peak@{peak_h}d={ic_peak:.4f}, 5d={ic_5d:.4f}, 60d={ic_60d:.4f}"
-
-            # Score: factor should have reasonable persistence
-            decay_ratio = ic_60d / ic_peak if ic_peak > 0 else 0
-            if ic_peak > 0.03 and decay_ratio > 0.5:
-                result['score'] += 20
-                result['checks']['ic_decay'] += ' ✓ GOOD'
-            elif ic_peak > 0.02 and decay_ratio > 0.3:
-                result['score'] += 15
-                result['checks']['ic_decay'] += ' ✓ OK'
-            elif ic_peak > 0.01:
-                result['score'] += 8
-                result['checks']['ic_decay'] += ' ⚠ FAST_DECAY'
-            else:
-                result['score'] += 3
-                result['checks']['ic_decay'] += ' ✗ NO_POWER'
-        else:
-            result['checks']['ic_decay'] = 'NO PROFILE'
-    else:
-        result['checks']['ic_decay'] = 'NO DATA'
-
-    # ---- Check 3: Regime robustness (weight: 15%) ----
-    result['max_score'] += 15
-    if fname in regime_summary:
-        regimes = regime_summary[fname]
-        ic_by_regime = {r: regimes[r]['mean_ic'] for r in regimes}
-
-        result['checks']['regime'] = ' | '.join(f"{r}: IC={ic_by_regime[r]:+.4f}" for r in ['bull', 'bear', 'sideways'] if r in ic_by_regime)
-
-        # Score: consistency across regimes (low variance in IC sign)
-        if len(ic_by_regime) >= 3:
-            signs = [1 if v > 0 else -1 for v in ic_by_regime.values()]
-            sign_consistent = len(set(signs)) == 1
-            mag_variance = stdev(list(ic_by_regime.values())) if len(ic_by_regime) > 1 else 999
-
-            if sign_consistent and mag_variance < 0.03:
-                result['score'] += 15
-                result['checks']['regime'] += ' ✓ ROBUST'
-            elif sign_consistent:
-                result['score'] += 10
-                result['checks']['regime'] += ' ✓ STABLE_SIGN'
-            else:
-                result['score'] += 5
-                result['checks']['regime'] += ' ⚠ UNSTABLE'
-                result['warnings'].append('IC sign varies across regimes')
-        elif len(ic_by_regime) >= 2:
-            result['score'] += 8
-            result['checks']['regime'] += ' ⚠ INCOMPLETE'
-    else:
-        result['checks']['regime'] = 'NO DATA'
-
-    # ---- Check 4: Monotonicity (weight: 15%) ----
-    result['max_score'] += 15
-    if fname in monotonicity_scores:
-        mono = monotonicity_scores[fname]['mean_mono']
-        result['checks']['monotonicity'] = f"score={mono:.3f}"
-
-        if mono > 0.75:
-            result['score'] += 15
-            result['checks']['monotonicity'] += ' ✓ STRONG'
-        elif mono > 0.60:
-            result['score'] += 12
-            result['checks']['monotonicity'] += ' ✓ OK'
-        elif mono > 0.50:
-            result['score'] += 6
-            result['checks']['monotonicity'] += ' ⚠ MARGINAL'
-        else:
-            result['checks']['monotonicity'] += ' ✗ NON-MONOTONIC'
-            result['warnings'].append(f'Monotonicity low: {mono:.3f}')
-    else:
-        result['checks']['monotonicity'] = 'NO DATA'
-
-    # ---- Check 5: Factor stability / turnover (weight: 20%) ----
-    result['max_score'] += 20
-    if fname in autocorr_summary:
-        ac = autocorr_summary[fname]
-        result['checks']['stability'] = f"autocorr={ac['mean_autocorr']:.3f}, turnover≈{ac['implied_turnover']:.2%}"
-
-        if ac['mean_autocorr'] > 0.85:
-            result['score'] += 20
-            result['checks']['stability'] += ' ✓ STABLE'
-        elif ac['mean_autocorr'] > 0.70:
-            result['score'] += 15
-            result['checks']['stability'] += ' ✓ OK'
-        elif ac['mean_autocorr'] > 0.50:
-            result['score'] += 8
-            result['checks']['stability'] += ' ⚠ HIGH_TURNOVER'
-            result['warnings'].append(f'High turnover: autocorr={ac["mean_autocorr"]:.3f}')
-        else:
-            result['score'] += 3
-            result['checks']['stability'] += ' ✗ UNSTABLE'
-            result['warnings'].append(f'Very unstable: autocorr={ac["mean_autocorr"]:.3f}')
-    else:
-        result['checks']['stability'] = 'NO DATA'
-
-    # ---- Final grade ----
-    score_pct = result['score'] / result['max_score'] * 100 if result['max_score'] > 0 else 0
-    if score_pct >= 80:
-        result['grade'] = 'PASS ✓'
-        result['action'] = 'KEEP'
-    elif score_pct >= 55:
-        result['grade'] = 'CONDITIONAL △'
-        result['action'] = 'REVIEW'
-    else:
-        result['grade'] = 'FAIL ✗'
-        result['action'] = 'DROP'
-
-    result['score_pct'] = score_pct
+    grade = compute_final_grade(result['score'], result['max_score'])
+    result.update(grade)
     return result
 
 # Run validation for all factors

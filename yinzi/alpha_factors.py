@@ -11,7 +11,10 @@ class _AlphaBase(FactorBase):
     @staticmethod
     def _extract(daily_data: dict, field: str) -> np.ndarray:
         dates = sorted(daily_data.keys())
-        return np.array([float(daily_data[d].get(field, np.nan)) for d in dates])
+        result = np.full(len(daily_data), np.nan, dtype=np.float64)
+        for i, d in enumerate(dates):
+            result[i] = float(daily_data[d].get(field, np.nan))
+        return result
 
     @staticmethod
     def _to_d(value) -> Optional[Decimal]:
