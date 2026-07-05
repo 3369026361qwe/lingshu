@@ -1,9 +1,11 @@
-"""VaR/CVaR 实时计算器 — L3 防护层。"""
+"""VaR/CVaR 实时计算器 — L3 防护层 (v4.0 升级: EVT 集成)."""
 from decimal import Decimal
+
+from jingsuan.evt_engine import EVTEngine
 
 
 class VaRCalculator:
-    """风险价值计算器。"""
+    """风险价值计算器 — 历史/参数/EVT 三方法."""
 
     @staticmethod
     def historical_var(returns: list[Decimal], confidence: Decimal = Decimal("0.95")) -> Decimal | None:
@@ -35,9 +37,42 @@ class VaRCalculator:
         mean = sum(returns) / n
         var = sum((r - mean) ** 2 for r in returns) / n
         std = var.sqrt()
-        # 95% → 1.645, 99% → 2.326
         z = Decimal("1.645") if confidence == Decimal("0.95") else Decimal("2.326")
         return abs(mean - z * std)
+
+    @staticmethod
+    def evt_var(
+        returns: list[Decimal],
+        confidence: Decimal = Decimal("0.99"),
+    ) -> Decimal | None:
+        """EVT 极值理论 VaR — v4.0 新增, 替换正态 VaR 用于厚尾市场."""
+        try:
+            fit = EVTEngine.fit_gpd(returns)
+            result = EVTEngine.tail_var(fit, [confidence])
+            if confidence == Decimal("0.99"):
+                return result.var_99
+            elif confidence == Decimal("0.95"):
+                return result.var_95
+            return result.var_99
+        except (ValueError, Exception):
+            return None
+
+    @staticmethod
+    def evt_cvar(
+        returns: list[Decimal],
+        confidence: Decimal = Decimal("0.99"),
+    ) -> Decimal | None:
+        """EVT Expected Shortfall — v4.0 新增."""
+        try:
+            fit = EVTEngine.fit_gpd(returns)
+            result = EVTEngine.tail_var(fit, [confidence])
+            if confidence == Decimal("0.99"):
+                return result.es_99
+            elif confidence == Decimal("0.95"):
+                return result.es_95
+            return result.es_99
+        except (ValueError, Exception):
+            return None
 
     @staticmethod
     def calculate_all(returns: list[Decimal], position_value: Decimal) -> dict:

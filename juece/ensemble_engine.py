@@ -1,30 +1,37 @@
 """
-三路信号加权融合引擎。
+三路信号加权融合引擎 (v4.0 升级: Bühlmann-Straub 信度融合).
+
+支持两种模式:
+    1. 传统 IC 驱动 (update_weights_from_ic) — 向后兼容
+    2. 信度融合 (update_weights_credibility) — v4.0 新增, 更稳健
 
 最终得分 = w1 × 多因子得分 + w2 × GNN增强得分 + w3 × Agent综合评分
-
-权重 w1, w2, w3 由历史 IC 表现动态调整。
 """
 
 from decimal import Decimal
 
+from jingsuan.credibility import CredibilityEngine, SourceTrackRecord
+
 
 class EnsembleEngine:
-    """三路信号加权融合引擎。"""
+    """三路信号加权融合引擎."""
 
     def __init__(self):
-        # 默认权重（等权启动，后续由 IC 动态调整）
         self._weights = {
             "factor": Decimal("0.40"),
             "gnn": Decimal("0.30"),
             "agent": Decimal("0.30"),
+        }
+        # 历史 IC 记录 (用于信度融合)
+        self._track_records: dict[str, list[Decimal]] = {
+            "factor": [], "gnn": [], "agent": [],
         }
 
     @property
     def weights(self) -> dict[str, Decimal]:
         return dict(self._weights)
 
-    # ── 权重调整 ────────────────────────────────────────
+    # ── 传统 IC 驱动 (向后兼容) ───────────────────────────
 
     def update_weights_from_ic(
         self,
@@ -32,10 +39,7 @@ class EnsembleEngine:
         gnn_ic: Decimal | None = None,
         agent_ic: Decimal | None = None,
     ) -> dict[str, Decimal]:
-        """根据各信号源的历史 IC 表现动态调整融合权重。
-
-        IC 越高 → 权重越大（等比例分配）。
-        """
+        """根据各信号源的历史 IC 表现动态调整融合权重."""
         ics = {}
         if factor_ic is not None and factor_ic > 0:
             ics["factor"] = factor_ic
@@ -45,18 +49,43 @@ class EnsembleEngine:
             ics["agent"] = agent_ic
 
         if not ics:
-            return self.weights  # 无有效 IC，保持当前权重
+            return self.weights
 
         total_ic = sum(ics.values())
         new_weights = {}
         for key in self._weights:
-            if key in ics:
-                new_weights[key] = ics[key] / total_ic
-            else:
-                new_weights[key] = Decimal("0")
+            new_weights[key] = ics[key] / total_ic if key in ics else Decimal("0")
 
         self._weights.update(new_weights)
         return self.weights
+
+    # ── 信度融合 (v4.0 新增) ──────────────────────────────
+
+    def update_weights_credibility(self) -> dict[str, Decimal]:
+        """Bühlmann-Straub 信度融合 — 自动考虑时序稳定性."""
+        sources = [
+            SourceTrackRecord(name, ics) for name, ics in self._track_records.items()
+        ]
+        try:
+            result = CredibilityEngine.buhlmann_straub(sources)
+            self._weights = dict(result.source_weights)
+        except (ValueError, Exception):
+            pass
+        return self.weights
+
+    def record_ic(
+        self,
+        factor_ic: Decimal | None = None,
+        gnn_ic: Decimal | None = None,
+        agent_ic: Decimal | None = None,
+    ) -> None:
+        """记录各源 IC 用于信度估计."""
+        if factor_ic is not None:
+            self._track_records["factor"].append(factor_ic)
+        if gnn_ic is not None:
+            self._track_records["gnn"].append(gnn_ic)
+        if agent_ic is not None:
+            self._track_records["agent"].append(agent_ic)
 
     def set_weights(self, factor: Decimal, gnn: Decimal, agent: Decimal) -> None:
         total = factor + gnn + agent
