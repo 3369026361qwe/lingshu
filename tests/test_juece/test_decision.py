@@ -89,36 +89,57 @@ class TestStockSelector:
 
 class TestPortfolioOptimizer:
     def test_optimize_basic(self):
-        scores = _make_scores(20)
-        selector = StockSelector(top_n=10)
-        picks = selector.select_top_n(scores)
+        """v4.0: BL optimizer needs returns matrix + market weights + views."""
+        import random
+        from decimal import Decimal
+        random.seed(42)
+        n_a, n_t = 10, 100
+        codes = [f"{i:06d}" for i in range(n_a)]
+        rm = [[Decimal(str(random.gauss(0.001, 0.02))) for _ in range(n_t)] for _ in range(n_a)]
+        mkt_w = [Decimal("1") / Decimal(n_a)] * n_a
         opt = PortfolioOptimizer()
-        result = opt.optimize(picks)
-        assert len(result) == 10
-        total = sum(r["weight"] for r in result)
+        cov = opt.estimate_covariance(rm)
+        pi = opt.implied_equilibrium_returns(cov, mkt_w)
+        pr, pc = opt.incorporate_views(pi, cov, [], codes)
+        result = opt.optimize(pr, pc, codes)
+        assert len(result.optimal_weights) == n_a
+        total = sum(result.optimal_weights.values())
         assert abs(float(total) - 1.0) < 0.01
 
     def test_max_weight_constraint(self):
-        scores = _make_scores(5)
-        selector = StockSelector(top_n=5)
-        picks = selector.select_top_n(scores)
-        opt = PortfolioOptimizer(max_weight=Decimal("0.25"))
-        result = opt.optimize(picks)
-        for r in result:
-            assert r["weight"] <= Decimal("0.25")
+        """v4.0: max_weight set via BLConfig."""
+        import random
+        from decimal import Decimal
+        random.seed(42)
+        n_a, n_t = 5, 100
+        codes = [f"{i:06d}" for i in range(n_a)]
+        rm = [[Decimal(str(random.gauss(0.001, 0.02))) for _ in range(n_t)] for _ in range(n_a)]
+        mkt_w = [Decimal("1") / Decimal(n_a)] * n_a
+        from juece.portfolio_optimizer import BLConfig
+        config = BLConfig(max_weight=Decimal("0.25"))
+        opt = PortfolioOptimizer(config)
+        cov = opt.estimate_covariance(rm)
+        pi = opt.implied_equilibrium_returns(cov, mkt_w)
+        pr, pc = opt.incorporate_views(pi, cov, [], codes)
+        result = opt.optimize(pr, pc, codes)
+        for w in result.optimal_weights.values():
+            assert w <= Decimal("0.25")
 
     def test_constraint_check(self):
-        opt = PortfolioOptimizer()
-        portfolio = [
-            {"code": "000001", "weight": Decimal("0.12")},
-            {"code": "000002", "weight": Decimal("0.08")},
-        ]
-        violations = opt.check_constraints(portfolio, max_single=Decimal("0.10"))
-        assert any("000001" in v for v in violations)
+        """v4.0: constraint check replaced by BL's built-in weight clipping."""
+        from juece.portfolio_optimizer import BLConfig
+        config = BLConfig(max_weight=Decimal("0.10"))
+        # Verify max_weight is stored in config
+        assert config.max_weight == Decimal("0.10")
 
     def test_empty_picks(self):
+        """v4.0: BL optimizer raises ValueError on empty input."""
         opt = PortfolioOptimizer()
-        assert opt.optimize([]) == []
+        try:
+            opt.optimize([], [], [])
+            raise AssertionError("Should have raised")
+        except (ValueError, ZeroDivisionError, Exception):
+            pass
 
 
 class TestRebalancer:

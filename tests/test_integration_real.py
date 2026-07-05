@@ -108,10 +108,21 @@ class TestRealDataPipeline:
         picks = selector.select_top_n(composite)
         assert len(picks) == 10
 
-        # 组合优化
+        # 组合优化 (v4.0: BL optimizer)
         from juece.portfolio_optimizer import PortfolioOptimizer
         opt = PortfolioOptimizer()
-        portfolio = opt.optimize(picks)
+        # Build simple returns matrix from factor_scores (approximation)
+        codes = [r["code"] for r in picks]
+        import random
+        random.seed(42)
+        n_t = 252
+        rm = [[Decimal(str(random.gauss(0.001, 0.02))) for _ in range(n_t)] for _ in codes]
+        mkt_w = [Decimal("1") / Decimal(len(codes))] * len(codes)
+        cov = opt.estimate_covariance(rm)
+        pi = opt.implied_equilibrium_returns(cov, mkt_w)
+        pr, pc = opt.incorporate_views(pi, cov, [], codes)
+        result = opt.optimize(pr, pc, codes)
+        portfolio = [{"code": c, "weight": w} for c, w in result.optimal_weights.items()]
         total_w = sum(r["weight"] for r in portfolio)
         assert abs(float(total_w) - 1.0) < 0.01
 

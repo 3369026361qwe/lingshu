@@ -34,16 +34,24 @@ class TestFullPipeline:
         picks = selector.select_top_n(composite)
         assert len(picks) == 10
 
-        # 3. 优化
+        # 3. 优化 (v4.0: BL optimizer)
+        codes = [f"{i:06d}" for i in range(1, n + 1)]
+        import random
+        random.seed(42)
+        rm = [[Decimal(str(random.gauss(0.001, 0.02))) for _ in range(252)] for _ in range(n)]
+        mkt_w = [Decimal("1") / Decimal(n)] * n
         opt = PortfolioOptimizer()
-        portfolio = opt.optimize(picks)
-        assert len(portfolio) == 10
+        cov = opt.estimate_covariance(rm)
+        pi = opt.implied_equilibrium_returns(cov, mkt_w)
+        pr, pc = opt.incorporate_views(pi, cov, [], codes)
+        result = opt.optimize(pr, pc, codes)
+        portfolio = [{"code": c, "weight": w} for c, w in result.optimal_weights.items()]
+        assert len(portfolio) == n
         total = sum(r["weight"] for r in portfolio)
         assert abs(float(total) - 1.0) < 0.01
 
-        # 4. 约束检查
-        violations = opt.check_constraints(portfolio)
-        assert isinstance(violations, list)  # 返回违规列表即可
+        # 4. 约束检查 (v4.0: BL 内置权重截断)
+        assert all(r["weight"] <= Decimal("0.10") for r in portfolio)
 
     def test_persist_final_portfolio(self):
         """验证最终组合可以持久化到数据库。"""

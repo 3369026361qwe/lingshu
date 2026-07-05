@@ -30,7 +30,7 @@ class TestMetricsRegistration:
         from shujuku.metrics import _system_info
         samples = list(_system_info.collect()[0].samples)
         # Info 指标将 key=value 对作为 labels，value 固定为 1.0
-        version_labels = [s for s in samples if s.labels.get("version") == "2.0.0"]
+        version_labels = [s for s in samples if s.labels.get("version") == "4.0.0"]
         assert len(version_labels) > 0, f"No version label found in samples: {[(s.name, s.labels) for s in samples]}"
         module_labels = [s for s in samples if s.labels.get("module") == "shujuku"]
         assert len(module_labels) > 0
