@@ -18,14 +18,27 @@ venv/
 # Node
 node_modules/
 
-# 数据
+# 前端构建产物
+qianduan/dist/
+
+# Claude Code
+.claude/
+.agents/
+skills-lock.json
+
+# 数据 — 仅跟踪小体积配置文件
 data/*
-!data/gnn_model.pt
 !data/gnn_config.json
+!data/zz500_codes.txt
 *.h5
 *.pkl
 
 # 测试
 .pytest_cache/
+.ruff_cache/
 htmlcov/
 .coverage
+
+# 运行时产物
+*.log
+financial_data.json

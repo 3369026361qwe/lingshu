@@ -1,4 +1,4 @@
-# 灵枢量化系统 v3.0 — 统一配置文件
+# 灵枢量化系统 v4.0.0 — 统一配置文件
 # 用法: import yaml; config = yaml.safe_load(open('config.yaml'))
 
 data:

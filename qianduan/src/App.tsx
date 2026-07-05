@@ -47,7 +47,7 @@ const App: React.FC = () => {
       <Layout>
         <Header style={{ background: '#161B22', borderBottom: '1px solid #21262D', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 24px' }}>
           <span className="text-muted" style={{ fontSize: 14 }}>🟢 系统正常</span>
-          <span className="text-muted">v3.1.0</span>
+          <span className="text-muted">v4.0.0</span>
         </Header>
         <Content style={{ padding: 24, background: '#0D1117', overflow: 'auto' }}>
           <Routes>

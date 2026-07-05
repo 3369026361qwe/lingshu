@@ -1,16 +1,30 @@
 """
-Prometheus 指标导出。
+Prometheus 指标导出 — 灵枢 v4.0 统一入口。
 
-提供统一指标注册表和常用指标类型。
-所有指标在首次导入时自动注册到 Prometheus REGISTRY。
+所有模块的指标注册均通过本模块的 REGISTRY 和辅助函数完成。
+已有 10 个独立 metrics.py 继续工作（Phase 4 迁移），新增模块必须使用此入口。
 
 Usage:
-    from shujuku.metrics import db_ops_total, db_ops_latency
-
-    db_ops_total.labels(operation="insert", table="factor_value").inc()
+    from shujuku.metrics import REGISTRY, new_counter, new_histogram, new_gauge
 """
 
 from prometheus_client import REGISTRY, Counter, Gauge, Histogram, Info
+
+
+def new_counter(name: str, doc: str, labels: list[str]) -> Counter:
+    """创建 Counter，自动注册到统一 REGISTRY。"""
+    return Counter(f"lingshu_{name}", doc, labels, registry=REGISTRY)
+
+
+def new_histogram(name: str, doc: str, labels: list[str], buckets: list[float] = None) -> Histogram:
+    """创建 Histogram，自动注册到统一 REGISTRY。"""
+    buckets = buckets or [0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0]
+    return Histogram(f"lingshu_{name}", doc, labels, buckets=buckets, registry=REGISTRY)
+
+
+def new_gauge(name: str, doc: str, labels: list[str] = None) -> Gauge:
+    """创建 Gauge，自动注册到统一 REGISTRY。"""
+    return Gauge(f"lingshu_{name}", doc, labels or [], registry=REGISTRY)
 
 # ── 数据库操作指标 ─────────────────────────────────────
 
@@ -70,7 +84,7 @@ session_pool_size = Gauge(
 # ── 系统信息 ──────────────────────────────────────────
 
 _system_info = Info("lingshu_system", "LingShu system information", registry=REGISTRY)
-_system_info.info({"version": "2.0.0", "module": "shujuku"})
+_system_info.info({"version": "4.0.0", "module": "shujuku"})
 
 # ── 降级状态指标 (P2-4) ────────────────────────────────
 

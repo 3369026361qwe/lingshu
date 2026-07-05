@@ -2,12 +2,59 @@
 shuju 共享工具函数。
 
 消除 akshare_fetcher 和 tushare_fetcher 之间的重复代码。
+所有金融计算必须使用 safe_divide / safe_mean / safe_pct_change 替代裸运算符。
 """
 
-from decimal import Decimal
-from typing import Any
+from decimal import Decimal, DecimalException
+from typing import Any, Union
 
 import pandas as pd
+
+Number = Union[int, float, Decimal]
+
+
+# ── 安全数学运算 (v4.0: 从 shujuku/safe_divide.py 复活) ──────
+
+
+def safe_divide(
+    numerator: Number,
+    denominator: Number,
+    default: Number = Decimal("0"),
+) -> Decimal:
+    """安全除法：分母为零/None/无效值时返回默认值。"""
+    if denominator is None or numerator is None:
+        return Decimal(str(default))
+    try:
+        num = Decimal(str(numerator))
+        den = Decimal(str(denominator))
+        return Decimal(str(default)) if den == 0 else num / den
+    except DecimalException:
+        return Decimal(str(default))
+
+
+def safe_mean(values: list[Number], default: Decimal = Decimal("0")) -> Decimal:
+    """安全均值：空列表或全无效值时返回默认值。"""
+    if not values:
+        return default
+    decimals = []
+    for v in values:
+        try:
+            decimals.append(Decimal(str(v)))
+        except DecimalException:
+            pass
+    if not decimals:
+        return default
+    return sum(decimals) / Decimal(len(decimals))
+
+
+def safe_pct_change(old: Number, new: Number, default: Decimal = Decimal("0")) -> Decimal:
+    """安全涨跌幅：(new - old) / old。old 为零时返回默认值。"""
+    try:
+        o = Decimal(str(old))
+        n = Decimal(str(new))
+        return default if o == 0 else (n - o) / o
+    except DecimalException:
+        return default
 
 
 def safe_decimal(value: Any) -> Decimal | None:
