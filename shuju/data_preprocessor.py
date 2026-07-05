@@ -18,7 +18,13 @@ import logging
 import time
 from decimal import Decimal
 
-from shuju.constants import FILL_METHOD, MIN_SAMPLE_SIZE, WINSORIZE_METHOD, WINSORIZE_N_SIGMA
+from shuju.config import get_config
+
+_cfg = get_config()
+FILL_METHOD = _cfg.fill_method
+MIN_SAMPLE_SIZE = _cfg.min_sample_size
+WINSORIZE_METHOD = _cfg.winsorize_method
+WINSORIZE_N_SIGMA = _cfg.n_sigma
 from shuju.metrics import preprocessor_duration, preprocessor_records_total
 
 _logger = logging.getLogger(__name__)

@@ -21,7 +21,9 @@ import logging
 from collections import defaultdict
 from datetime import datetime
 
-from shuju.constants import FINANCIAL_FILL_LIMIT_DAYS
+from shuju.config import get_config
+
+FINANCIAL_FILL_LIMIT_DAYS = get_config().fill_limit_days
 
 _logger = logging.getLogger(__name__)
 
