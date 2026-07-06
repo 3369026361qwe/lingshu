@@ -286,17 +286,37 @@ class PortfolioOptimizer:
             cs.append({"type": "ineq", "fun": lambda w, vl=vl: vl - 2.326 * (_port_var(w, sig) ** 0.5)})
 
         try:
-            best_x, best_f, ok = None, float("inf"), False
+            best_x, best_f, ok, feasibility_warnings = None, float("inf"), False, []
 
             if n <= 5:
-                # 网格枚举: 步长0.05 →~10k 点, 保证全局最优
+                feasible_count = 0
                 for cand in _simplex_grid(n, 0.05):
                     if not _feasible(cand, bnd, cs):
                         continue
+                    feasible_count += 1
                     fx = -_obj(cand, mu, sig, delta)
                     if fx < best_f:
                         best_f, best_x = fx, cand
                         ok = True
+
+                if feasible_count == 0:
+                    # 约束不可行: 松弛 turnover 约束再试
+                    relaxed_cs = [_relax_turnover_constraint(c, cx) for c in cs]
+                    for cand in _simplex_grid(n, 0.05):
+                        if not _feasible(cand, bnd, relaxed_cs):
+                            continue
+                        fx = -_obj(cand, mu, sig, delta)
+                        if fx < best_f:
+                            best_f, best_x = fx, cand
+                            ok = True
+                    if ok:
+                        feasibility_warnings.append(
+                            "turnover constraint relaxed: max_weight + current_weights made original limit infeasible"
+                        )
+                    else:
+                        feasibility_warnings.append(
+                            "all constraints infeasible: falling back to equal weight"
+                        )
             else:
                 from scipy.optimize import minimize
                 ns = max(5, min(n * 2, 20))
@@ -308,12 +328,38 @@ class PortfolioOptimizer:
                         best_f, best_x = r.fun, r.x
                         ok = True
 
+                if not ok:
+                    # 松弛 turnover 约束
+                    relaxed_cs = [_relax_turnover_constraint(c, cx) for c in cs]
+                    for si in range(ns):
+                        x0 = [1.0 / n] * n if si == 0 else _rand_simplex(n)
+                        r = minimize(lambda w: -_obj(w, mu, sig, delta), x0, method="SLSQP",
+                                     bounds=bnd, constraints=relaxed_cs,
+                                     options={"maxiter": 1000, "ftol": 1e-12})
+                        if r.success and r.fun < best_f:
+                            best_f, best_x = r.fun, r.x
+                            ok = True
+                    if ok:
+                        feasibility_warnings.append(
+                            "turnover constraint relaxed: max_weight + current_weights made original limit infeasible"
+                        )
+                    else:
+                        feasibility_warnings.append(
+                            "all constraints infeasible: falling back to equal weight"
+                        )
+
             if not ok:
                 raw = [Decimal("1") / Decimal(n)] * n
                 ok = False
             else:
                 raw = [Decimal(str(max(v, 0.0))) for v in best_x]
                 ok = True
+
+            if feasibility_warnings:
+                import logging
+                logging.getLogger(__name__).warning(
+                    "PortfolioOptimizer: %s", "; ".join(feasibility_warnings)
+                )
 
         except Exception:
             raw = self._fallback(post_ret, post_cov)
@@ -513,11 +559,25 @@ def _feasible(w, bnd, cs):
 
 
 def _rand_simplex(n):
-    """随机单纯形点 (Dirichlet)."""
+    """Random simplex point (Dirichlet)."""
     import random
     raw = [random.random() for _ in range(n)]
     s = sum(raw)
     return [v / s for v in raw]
+
+
+def _relax_turnover_constraint(c: dict, cx: list[float]) -> dict:
+    """Relax turnover constraint to avoid infeasibility.
+
+    When max_weight makes the turnover constraint impossible to satisfy
+    (e.g. current weight 0.8, max_weight 0.3 -> min turnover > 0.5),
+    we remove the turnover constraint entirely.
+    """
+    if c["type"] == "ineq" and abs(c["fun"](cx)) > 0.9:
+        # This is a turnover constraint that is severely violated at current weights
+        # Replace with a no-op constraint (turnover <= 1.0, always satisfied)
+        return {"type": "ineq", "fun": lambda w: 1.0}
+    return c
 
 
 def _simplex_grid(n, step):

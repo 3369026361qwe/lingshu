@@ -16,6 +16,8 @@ from decimal import Decimal
 from statistics import mean as _stat_mean
 from statistics import stdev as _stat_stdev
 
+from shuju.utils import safe_divide
+
 
 @dataclass
 class PerformanceReport:
@@ -131,12 +133,15 @@ class BacktestEngine:
 
         # 归因追踪: 记录每期组合权重和收益
         attribution_snapshots: list[dict] = []
-        portfolio_weight_history: dict[str, list[Decimal]] = {}  # {code: [w_t over time]}
+        portfolio_weight_history: dict[str, list[Decimal]] = {}
         benchmark_weight_history: dict[str, list[Decimal]] = {}
         portfolio_return_history: dict[str, list[Decimal]] = {}
         benchmark_return_history: dict[str, list[Decimal]] = {}
-        # 行业映射 (从 signal 或 data_loader 获取)
         industry_map: dict[str, str] = config.get("industry_map", {})
+        # 因子归因: 追踪每期组合因子暴露和收益
+        factor_data: dict[str, list[Decimal]] = config.get("factor_data", {})  # {name: [f_t]}
+        factor_exposure_snapshots: list[dict[str, Decimal]] = []  # [{name: exposure_t}]
+        asset_factor_exposures: dict[str, dict[str, Decimal]] = config.get("asset_factor_exposures", {})  # {code: {factor_name: beta}}
 
         for _i, trade_date in enumerate(dates):
             # 获取当日行情
@@ -233,6 +238,7 @@ class BacktestEngine:
 
             # ── 归因快照: 记录当日权重和收益 ──────────
             if config.get("enable_attribution", False):
+                _enable_attr = True
                 price_map = {}
                 for c_code, bar in market_data.items():
                     price_map[c_code] = Decimal(str(bar.get("close", Decimal("0"))))
@@ -275,6 +281,14 @@ class BacktestEngine:
                     benchmark_weight_history.setdefault(c_code, []).append(w)
                     if c_code in price_map:
                         benchmark_return_history.setdefault(c_code, []).append(price_map[c_code])
+
+                # ── 因子暴露快照 ──────────────────────────
+                if asset_factor_exposures and pw_normalized:
+                    combined_exp: dict[str, Decimal] = {}
+                    for c_code, w in pw_normalized.items():
+                        for f_name, beta in asset_factor_exposures.get(c_code, {}).items():
+                            combined_exp[f_name] = combined_exp.get(f_name, Decimal("0")) + w * beta
+                    factor_exposure_snapshots.append(combined_exp)
 
             prev_equity = total_equity
 
@@ -319,14 +333,16 @@ class BacktestEngine:
             except Exception:
                 pass
 
+        enable_attribution = config.get("enable_attribution", False)
         # ── 归因分析 ────────────────────────────────────
         attribution_result = None
-        if config.get("enable_attribution", False) and len(attribution_snapshots) > 10:
+        if enable_attribution and len(attribution_snapshots) > 10:
             try:
                 from huice.attribution import AttributionEngine
 
-                # 1. Brinson 归因: 按行业聚合
-                # 用最后一天快照的权重和收益数据
+                attribution_result = {}
+
+                # ── 1. Brinson 归因 ───────────────────────────
                 last_snap = attribution_snapshots[-1]
                 pw_by_sector: dict[str, list[tuple[str, Decimal]]] = {}
                 bw_by_sector: dict[str, list[tuple[str, Decimal]]] = {}
@@ -336,53 +352,68 @@ class BacktestEngine:
                 for code, w in last_snap["portfolio_weights"].items():
                     sector = industry_map.get(code, "other")
                     pw_by_sector.setdefault(sector, []).append((code, w))
-                    # 使用期间累计收益作为近似
-                    if code in portfolio_return_history and len(portfolio_return_history[code]) > 1:
-                        vals = portfolio_return_history[code]
-                        pr_map[code] = (vals[-1] - vals[0]) / vals[0] if vals[0] > 0 else Decimal("0")
-                    else:
-                        pr_map[code] = Decimal("0")
+                    vals = portfolio_return_history.get(code, [])
+                    pr_map[code] = (vals[-1] - vals[0]) / vals[0] if len(vals) > 1 and vals[0] > 0 else Decimal("0")
                 for code, w in last_snap["benchmark_weights"].items():
                     sector = industry_map.get(code, "other")
                     bw_by_sector.setdefault(sector, []).append((code, w))
-                    if code in benchmark_return_history and len(benchmark_return_history[code]) > 1:
-                        vals = benchmark_return_history[code]
-                        br_map[code] = (vals[-1] - vals[0]) / vals[0] if vals[0] > 0 else Decimal("0")
-                    else:
-                        br_map[code] = Decimal("0")
+                    vals = benchmark_return_history.get(code, [])
+                    br_map[code] = (vals[-1] - vals[0]) / vals[0] if len(vals) > 1 and vals[0] > 0 else Decimal("0")
 
                 if pw_by_sector and bw_by_sector:
                     brinson_r = AttributionEngine.brinson(pw_by_sector, bw_by_sector, pr_map, br_map)
-                    attribution_result = {
-                        "brinson": {
-                            "sectors": brinson_r.sectors,
-                            "allocation": [float(a) for a in brinson_r.allocation_effect],
-                            "selection": [float(s) for s in brinson_r.selection_effect],
-                            "interaction": [float(i) for i in brinson_r.interaction_effect],
-                            "total_active": float(brinson_r.total_active_return),
-                        }
+                    attribution_result["brinson"] = {
+                        "sectors": brinson_r.sectors,
+                        "allocation": [float(a) for a in brinson_r.allocation_effect],
+                        "selection": [float(s) for s in brinson_r.selection_effect],
+                        "interaction": [float(i) for i in brinson_r.interaction_effect],
+                        "total_active": float(brinson_r.total_active_return),
                     }
 
-                # 2. 风险归因: 基于实际持仓权重
-                pw_list = [Decimal("0")] * len(last_snap["portfolio_weights"])
-                codes_list = list(last_snap["portfolio_weights"].keys())
-                for i, code in enumerate(codes_list):
-                    pw_list[i] = last_snap["portfolio_weights"].get(code, Decimal("0"))
+                # ── 2. 因子归因 ──────────────────────────
+                if factor_data and factor_exposure_snapshots and len(daily_returns) > 0:
+                    n_factors = len(next(iter(factor_data.values()), []))
+                    n_days = min(len(daily_returns), n_factors,
+                                 len(factor_exposure_snapshots))
+                    if n_days > 10:
+                        # 聚合组合因子暴露: 每个因子取时间平均
+                        agg_exposures: dict[str, list[Decimal]] = {}
+                        for f_name in factor_data:
+                            avg_exp = Decimal("0")
+                            for snap in factor_exposure_snapshots:
+                                avg_exp += snap.get(f_name, Decimal("0"))
+                            avg_exp = safe_divide(avg_exp, Decimal(max(1, len(factor_exposure_snapshots))))
+                            agg_exposures[f_name] = [avg_exp] * n_days
 
+                        port_rets = [Decimal(str(r)) for r in daily_returns[-n_days:]]
+                        factor_rets = {k: [Decimal(str(v)) for v in vs[-n_days:]] for k, vs in factor_data.items()}
+                        try:
+                            factor_r = AttributionEngine.factor_attribution(
+                                port_rets, factor_rets, agg_exposures
+                            )
+                            attribution_result["factor"] = {
+                                "contributions": {k: float(v) for k, v in factor_r.factor_contributions.items()},
+                                "alpha": float(factor_r.alpha),
+                                "r_squared": float(factor_r.r_squared),
+                            }
+                        except Exception:
+                            pass
+
+                # ── 3. 风险归因 ──────────────────────────
+                pw_list = [last_snap["portfolio_weights"].get(c, Decimal("0"))
+                           for c in last_snap["portfolio_weights"]]
                 if len(pw_list) > 1 and len(daily_returns) > 10:
-                    # 用实际持仓收益估计协方差
                     from juece.portfolio_optimizer import PortfolioOptimizer
                     opt = PortfolioOptimizer()
-                    # 直接用每日组合收益序列构建单资产收益矩阵的近似
-                    rm = [[Decimal(str(r))] * 20 for r in daily_returns[-20:]]
-                    if len(rm) >= len(pw_list):
-                        rm = rm[:len(pw_list)]
-                    elif len(rm) > 0:
-                        rm = [rm[i % len(rm)] for i in range(len(pw_list))]
-                    cov = opt.estimate_covariance(rm)
+                    n_a = len(pw_list)
+                    cov_rm = [[Decimal("0")] * 20 for _ in range(n_a)]
+                    for i in range(n_a):
+                        for t in range(20):
+                            idx = max(0, len(daily_returns) - 20 + t)
+                            r_val = daily_returns[min(idx, len(daily_returns) - 1)]
+                            cov_rm[i][t] = Decimal(str(r_val))
+                    cov = opt.estimate_covariance(cov_rm)
                     risk_attr = AttributionEngine.risk_attribution(pw_list, cov)
-                    if attribution_result is None:
-                        attribution_result = {}
                     attribution_result["risk"] = {
                         "var_total": float(risk_attr.var_total),
                         "component_var": [float(c) for c in risk_attr.component_var],
