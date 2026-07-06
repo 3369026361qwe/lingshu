@@ -239,7 +239,7 @@ class StubBroker(AbstractBroker):
 
         order = BrokerOrder(
             code=code, side=side_enum, quantity=qty,
-            price=price or Decimal("0"),
+            price=price if price is not None else Decimal("0"),
             order_type=OrderType(order_type),
             reason=reason, status=OrderStatus.SUBMITTED,
         )
@@ -311,12 +311,14 @@ class StubBroker(AbstractBroker):
             qty = pos["quantity"]
             if qty <= 0:
                 continue
+            market_price = pos.get("market_price", pos["avg_cost"])
+            unrealized = (market_price - pos["avg_cost"]) * Decimal(str(qty))
             result.append(Position(
                 code=code,
                 quantity=qty,
                 avg_cost=pos["avg_cost"],
-                market_value=pos["avg_cost"] * Decimal(str(qty)),  # stub: 用成本价
-                unrealized_pnl=Decimal("0"),
+                market_value=market_price * Decimal(str(qty)),
+                unrealized_pnl=unrealized,
             ))
         return result
 
@@ -358,7 +360,6 @@ class StubBroker(AbstractBroker):
 
     def reset(self) -> None:
         """重置到初始状态."""
-        import uuid
         self._account_id = f"STUB_{uuid.uuid4().hex[:8]}"
         self._cash = self._initial_cash
         self._frozen_cash = Decimal("0")

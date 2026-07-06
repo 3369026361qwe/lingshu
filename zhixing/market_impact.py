@@ -234,7 +234,6 @@ class MarketImpactModel:
     def optimal_vwap_slices(
         order_quantity: int,
         daily_volume: int,
-        daily_volatility: Decimal,
         price: Decimal,
         volume_profile: list[float] | None = None,
     ) -> list[dict]:

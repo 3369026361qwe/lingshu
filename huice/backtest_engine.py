@@ -135,8 +135,8 @@ class BacktestEngine:
         attribution_snapshots: list[dict] = []
         portfolio_weight_history: dict[str, list[Decimal]] = {}
         benchmark_weight_history: dict[str, list[Decimal]] = {}
-        portfolio_return_history: dict[str, list[Decimal]] = {}
-        benchmark_return_history: dict[str, list[Decimal]] = {}
+        portfolio_price_history: dict[str, list[Decimal]] = {}   # {code: [price_t]}
+        benchmark_price_history: dict[str, list[Decimal]] = {}
         industry_map: dict[str, str] = config.get("industry_map", {})
         # 因子归因: 追踪每期组合因子暴露和收益
         factor_data: dict[str, list[Decimal]] = config.get("factor_data", {})  # {name: [f_t]}
@@ -238,7 +238,6 @@ class BacktestEngine:
 
             # ── 归因快照: 记录当日权重和收益 ──────────
             if config.get("enable_attribution", False):
-                _enable_attr = True
                 price_map = {}
                 for c_code, bar in market_data.items():
                     close_val = bar.get("close")
@@ -278,11 +277,11 @@ class BacktestEngine:
                 for c_code, w in pw_normalized.items():
                     portfolio_weight_history.setdefault(c_code, []).append(w)
                     if c_code in price_map:
-                        portfolio_return_history.setdefault(c_code, []).append(price_map[c_code])
+                        portfolio_price_history.setdefault(c_code, []).append(price_map[c_code])
                 for c_code, w in bw_normalized.items():
                     benchmark_weight_history.setdefault(c_code, []).append(w)
                     if c_code in price_map:
-                        benchmark_return_history.setdefault(c_code, []).append(price_map[c_code])
+                        benchmark_price_history.setdefault(c_code, []).append(price_map[c_code])
 
                 # ── 因子暴露快照 ──────────────────────────
                 if asset_factor_exposures and pw_normalized:
@@ -322,8 +321,9 @@ class BacktestEngine:
                     var_backtest_result = VaRBacktestSuite.run_all(
                         var_forecasts, aligned_losses, Decimal("0.95")
                     )
-            except Exception:
-                pass
+            except Exception as _exc:
+                import logging
+                logging.getLogger(__name__).warning("VaR backtest failed: %s", _exc)
 
         # ── 数据窥探防御 ──────────────────────────────────
         dsr, psr = 0.0, 0.0
@@ -340,8 +340,9 @@ class BacktestEngine:
                 psr = DataSnoopingDefender.probabilistic_sharpe_ratio(
                     sr, 0.0, max(n_days, 1)
                 )
-            except Exception:
-                pass
+            except Exception as _exc:
+                import logging
+                logging.getLogger(__name__).warning("DSR/PSR computation failed: %s", _exc)
 
         enable_attribution = config.get("enable_attribution", False)
         # ── 归因分析 ────────────────────────────────────
@@ -362,12 +363,12 @@ class BacktestEngine:
                 for code, w in last_snap["portfolio_weights"].items():
                     sector = industry_map.get(code, "other")
                     pw_by_sector.setdefault(sector, []).append((code, w))
-                    vals = portfolio_return_history.get(code, [])
+                    vals = portfolio_price_history.get(code, [])
                     pr_map[code] = (vals[-1] - vals[0]) / vals[0] if len(vals) > 1 and vals[0] > 0 else Decimal("0")
                 for code, w in last_snap["benchmark_weights"].items():
                     sector = industry_map.get(code, "other")
                     bw_by_sector.setdefault(sector, []).append((code, w))
-                    vals = benchmark_return_history.get(code, [])
+                    vals = benchmark_price_history.get(code, [])
                     br_map[code] = (vals[-1] - vals[0]) / vals[0] if len(vals) > 1 and vals[0] > 0 else Decimal("0")
 
                 if pw_by_sector and bw_by_sector:
@@ -406,8 +407,9 @@ class BacktestEngine:
                                 "alpha": float(factor_r.alpha),
                                 "r_squared": float(factor_r.r_squared),
                             }
-                        except Exception:
-                            pass
+                        except Exception as _exc:
+                            import logging
+                            logging.getLogger(__name__).warning("Factor attribution failed: %s", _exc)
 
                 # ── 3. 风险归因 ──────────────────────────
                 pw_list = [last_snap["portfolio_weights"].get(c, Decimal("0"))
@@ -419,8 +421,8 @@ class BacktestEngine:
                     # 用每个持仓的历史价格序列构建真实协方差矩阵
                     cov_rm = []
                     for code in last_snap["portfolio_weights"]:
-                        if code in portfolio_return_history and len(portfolio_return_history[code]) >= 20:
-                            vals = portfolio_return_history[code][-20:]
+                        if code in portfolio_price_history and len(portfolio_price_history[code]) >= 20:
+                            vals = portfolio_price_history[code][-20:]
                             # 转为日收益率
                             rets = [(vals[i] - vals[i - 1]) / vals[i - 1] if i > 0 and vals[i - 1] > 0
                                     else Decimal("0") for i in range(1, len(vals))]
@@ -439,8 +441,9 @@ class BacktestEngine:
                         "component_var": [float(c) for c in risk_attr.component_var],
                         "marginal_var": [float(m) for m in risk_attr.marginal_var],
                     }
-            except Exception:
-                pass
+            except Exception as _exc:
+                import logging
+                logging.getLogger(__name__).warning("Attribution analysis failed: %s", _exc)
 
         elapsed = _time.perf_counter() - t0
 

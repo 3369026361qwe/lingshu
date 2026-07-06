@@ -83,7 +83,6 @@ class PortfolioOptimizer:
 
     def __init__(self, config: BLConfig | None = None):
         self.config = config or BLConfig()
-        self._last_constraints: OptimizationConstraints | None = None
 
     # ---------------------------------------------------------------
     # 协方差估计
@@ -96,15 +95,15 @@ class PortfolioOptimizer:
         na = len(returns_matrix)
         if na == 0:
             return []
-        no = min(len(r) for r in returns_matrix)
-        data = [[float(v) for v in r[:no]] for r in returns_matrix]
+        n_periods = min(len(r) for r in returns_matrix)
+        data = [[float(v) for v in r[:n_periods]] for r in returns_matrix]
 
-        means = [sum(col) / no for col in data]
+        means = [sum(col) / n_periods for col in data]
         S = [[0.0] * na for _ in range(na)]
         for i in range(na):
             for j in range(na):
-                cv = sum((data[i][t] - means[i]) * (data[j][t] - means[j]) for t in range(no))
-                S[i][j] = cv / (no - 1) if no > 1 else 0.0
+                cv = sum((data[i][t] - means[i]) * (data[j][t] - means[j]) for t in range(n_periods))
+                S[i][j] = cv / (n_periods - 1) if n_periods > 1 else 0.0
 
         if na == 1:
             return [[Decimal(str(S[0][0]))]]
@@ -131,9 +130,9 @@ class PortfolioOptimizer:
 
         rho = 0.0
         for i in range(na):
-            for t in range(no):
+            for t in range(n_periods):
                 rho += ((data[i][t] - means[i]) ** 2 - S[i][i]) ** 2
-        rho /= na * no * max(1, no - 1)
+        rho /= na * n_periods * max(1, n_periods - 1)
 
         sh = min(pi_hat / (pi_hat + rho) if (pi_hat + rho) > 0 else 0.0, 1.0)
 
@@ -362,7 +361,9 @@ class PortfolioOptimizer:
                 raw = [Decimal(str(max(v, 0.0))) for v in best_x]
                 ok = True
 
-        except Exception:
+        except Exception as _exc:
+            import logging
+            logging.getLogger(__name__).error("Convex optimization failed, falling back: %s", _exc)
             raw = self._fallback(post_ret, post_cov)
             ok = False
 
@@ -649,7 +650,7 @@ def _diagnose_and_relax(
     return descriptions, relaxed_cs
 
 
-def _simplex_grid(n, step):
+def _simplex_grid(n: int, step: float) -> list[list[float]]:
     """枚举权重和为1的网格点.
 
     n=5, step=0.05 → ~10k points. n>5 不建议使用.

@@ -218,7 +218,6 @@ class TestExecutionSchedules:
         slices = MarketImpactModel.optimal_vwap_slices(
             order_quantity=10000,
             daily_volume=1000000,
-            daily_volatility=Decimal("0.02"),
             price=Decimal("10"),
         )
         assert len(slices) == 16
@@ -232,7 +231,6 @@ class TestExecutionSchedules:
         slices = MarketImpactModel.optimal_vwap_slices(
             order_quantity=10000,
             daily_volume=1000000,
-            daily_volatility=Decimal("0.02"),
             price=Decimal("10"),
             volume_profile=profile,
         )
