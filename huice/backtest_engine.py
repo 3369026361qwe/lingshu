@@ -241,7 +241,9 @@ class BacktestEngine:
                 _enable_attr = True
                 price_map = {}
                 for c_code, bar in market_data.items():
-                    price_map[c_code] = Decimal(str(bar.get("close", Decimal("0"))))
+                    close_val = bar.get("close")
+                    if close_val is not None and float(close_val) > 0:
+                        price_map[c_code] = Decimal(str(close_val))
 
                 # 组合权重: 基于持仓市值
                 total_mv = Decimal("0")
@@ -309,9 +311,17 @@ class BacktestEngine:
         if config.get("enable_var_backtest", False) and len(var_forecasts) > 20:
             try:
                 from jingsuan.var_backtest import VaRBacktestSuite
-                var_backtest_result = VaRBacktestSuite.run_all(
-                    var_forecasts, actual_losses, Decimal("0.95")
-                )
+                # Align: actual_losses has n entries, var_forecasts starts at index 20
+                n_actuals = len(actual_losses)
+                n_forecasts = len(var_forecasts)
+                if n_actuals >= 20 + n_forecasts:
+                    aligned_losses = actual_losses[-n_forecasts:]
+                else:
+                    aligned_losses = actual_losses[20:20 + n_forecasts]
+                if len(aligned_losses) == len(var_forecasts):
+                    var_backtest_result = VaRBacktestSuite.run_all(
+                        var_forecasts, aligned_losses, Decimal("0.95")
+                    )
             except Exception:
                 pass
 
@@ -402,16 +412,26 @@ class BacktestEngine:
                 # ── 3. 风险归因 ──────────────────────────
                 pw_list = [last_snap["portfolio_weights"].get(c, Decimal("0"))
                            for c in last_snap["portfolio_weights"]]
-                if len(pw_list) > 1 and len(daily_returns) > 10:
+                if len(pw_list) > 1 and len(daily_returns) > 20:
                     from juece.portfolio_optimizer import PortfolioOptimizer
                     opt = PortfolioOptimizer()
                     n_a = len(pw_list)
-                    cov_rm = [[Decimal("0")] * 20 for _ in range(n_a)]
-                    for i in range(n_a):
-                        for t in range(20):
-                            idx = max(0, len(daily_returns) - 20 + t)
-                            r_val = daily_returns[min(idx, len(daily_returns) - 1)]
-                            cov_rm[i][t] = Decimal(str(r_val))
+                    # 用每个持仓的历史价格序列构建真实协方差矩阵
+                    cov_rm = []
+                    for code in last_snap["portfolio_weights"]:
+                        if code in portfolio_return_history and len(portfolio_return_history[code]) >= 20:
+                            vals = portfolio_return_history[code][-20:]
+                            # 转为日收益率
+                            rets = [(vals[i] - vals[i - 1]) / vals[i - 1] if i > 0 and vals[i - 1] > 0
+                                    else Decimal("0") for i in range(1, len(vals))]
+                            if len(rets) >= 2:
+                                cov_rm.append(rets[:20])
+                    # 回退: 若无法构建价格型协方差则用组合收益率 bootstrap
+                    if len(cov_rm) < n_a:
+                        cov_rm = [[Decimal(str(daily_returns[min(i, len(daily_returns) - 1)]))]
+                                   * 20 for _ in range(n_a)]
+                    else:
+                        cov_rm = cov_rm[:n_a]
                     cov = opt.estimate_covariance(cov_rm)
                     risk_attr = AttributionEngine.risk_attribution(pw_list, cov)
                     attribution_result["risk"] = {
@@ -519,22 +539,48 @@ class BacktestEngine:
             from shujuku.session import SessionContext
 
             with SessionContext() as s:
-                for rec in self._records:
-                    s.execute(text(
+                snap_before = s.execute(text(
+                    'SELECT COUNT(*) FROM portfolio_snapshot'
+                )).scalar()
+
+                batch = []
+                for _rec_idx, rec in enumerate(self._records):
+                    # 从 previous total_equity 计算 daily_return
+                    prev_tv = Decimal(str(self._records[_rec_idx - 1]["total_equity"])) if _rec_idx > 0 else None
+                    cur_tv = Decimal(str(rec["total_equity"]))
+                    dr = (cur_tv - prev_tv) / prev_tv if prev_tv and prev_tv > 0 else Decimal("0")
+                    cr = (cur_tv - Decimal(str(self._records[0]["total_equity"]))) / Decimal(str(self._records[0]["total_equity"])) \
+                        if self._records and Decimal(str(self._records[0]["total_equity"])) > 0 else Decimal("0")
+
+                    batch.append({
+                        'd': datetime.strptime(rec["date"], "%Y%m%d").date(),
+                        'tv': str(cur_tv),
+                        'c': str(rec.get("cash", 0)),
+                        'mv': str(rec.get("market_value", 0)),
+                        'dr': str(dr),
+                        'cr': str(cr),
+                        'pc': rec.get("positions", 0),
+                    })
+
+                if batch:
+                    stmt = text(
                         "INSERT INTO portfolio_snapshot (trade_date, total_value, cash, market_value, "
                         "daily_return, cumulative_return, position_count, updated_at) "
                         "VALUES (:d, :tv, :c, :mv, :dr, :cr, :pc, datetime('now')) "
                         "ON CONFLICT(trade_date) DO NOTHING"
-                    ), {
-                        'd': datetime.strptime(rec["date"], "%Y%m%d").date(),
-                        'tv': str(rec["total_equity"]),
-                        'c': str(rec.get("cash", 0)),
-                        'mv': str(rec.get("market_value", 0)),
-                        'dr': str(rec.get("daily_return", 0) or 0),
-                        'cr': str(rec.get("cumulative_return", 0) or 0),
-                        'pc': rec.get("positions", 0),
-                    })
-                s.commit()
+                    )
+                    for i in range(0, len(batch), 2000):
+                        s.execute(stmt, batch[i:i + 2000])
+                    s.commit()
+
+                    snap_after = s.execute(text(
+                        'SELECT COUNT(*) FROM portfolio_snapshot'
+                    )).scalar()
+                    import logging
+                    logging.getLogger(__name__).info(
+                        "portfolio_snapshot persisted: %s -> %s (+%s rows)",
+                        snap_before, snap_after, snap_after - snap_before,
+                    )
         except Exception as exc:
             import logging
             logging.getLogger(__name__).warning("Persist failed: %s", exc)
@@ -663,7 +709,7 @@ class DBBacktestRunner:
                 fs_rows = s.execute(text(
                     f"SELECT trade_date, code, composite_score, rank FROM {table}{date_filter} ORDER BY trade_date, rank"
                 ), params).fetchall()
-                for _td, code, sc, _rk in fs_rows:
+                for td, code, sc, _rk in fs_rows:
                     try:
                         signals_data[str(td)][code] = float(sc)
                     except Exception:
@@ -757,7 +803,7 @@ class DBBacktestRunner:
                 'pc': len(holdings),
             })
 
-        # VaR 计算
+        # VaR 计算 — 与 actual_losses 同步追加 var_forecasts
         if len(daily_rets) >= 20:
             for i in range(20, len(daily_rets)):
                 window = daily_rets[i - 20:i]
@@ -773,6 +819,8 @@ class DBBacktestRunner:
                     'cvar95': str(round(cvar_95_pct * curr_val, 2)),
                 })
                 var_forecasts.append(Decimal(str(var_95_pct)))
+            # 对齐: actual_losses 和 var_forecasts 都从第 20 天开始
+            actual_losses_aligned = actual_losses[20:]
 
         # 绩效指标
         sharpe = 0.0
@@ -787,12 +835,12 @@ class DBBacktestRunner:
 
         # ── VaR 回测检验 ────────────────────────────────
         var_bt_result = None
-        if enable_var_backtest and len(var_forecasts) > 20 and len(actual_losses) > 20:
+        if enable_var_backtest and len(var_forecasts) > 20 and len(actual_losses_aligned) > 20:
             try:
                 from jingsuan.var_backtest import VaRBacktestSuite
                 result = VaRBacktestSuite.run_all(
                     var_forecasts,
-                    [Decimal(str(l)) for l in actual_losses],
+                    [Decimal(str(l)) for l in actual_losses_aligned],
                     Decimal("0.95"),
                 )
                 var_bt_result = {

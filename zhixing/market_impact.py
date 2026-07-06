@@ -266,7 +266,12 @@ class MarketImpactModel:
         allocated = 0
         for i, w in enumerate(norm_weights):
             if i == n_slices - 1:
-                qty = order_quantity - allocated
+                qty = max(100, order_quantity - allocated)
+                if qty > order_quantity - allocated:
+                    qty = order_quantity - allocated
+                # Ensure non-negative
+                if qty < 0:
+                    qty = 0
             else:
                 qty = max(100, int(order_quantity * w) // 100 * 100)
             allocated += qty

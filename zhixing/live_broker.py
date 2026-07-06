@@ -333,7 +333,7 @@ class StubBroker(AbstractBroker):
             cash=self._cash,
             market_value=mv,
             frozen_cash=self._frozen_cash,
-            available_cash=self._cash,
+            available_cash=self._cash - self._frozen_cash,
             total_pnl=total - self._initial_cash,
             daily_pnl=Decimal("0"),
         )
@@ -358,6 +358,8 @@ class StubBroker(AbstractBroker):
 
     def reset(self) -> None:
         """重置到初始状态."""
+        import uuid
+        self._account_id = f"STUB_{uuid.uuid4().hex[:8]}"
         self._cash = self._initial_cash
         self._frozen_cash = Decimal("0")
         self._positions.clear()

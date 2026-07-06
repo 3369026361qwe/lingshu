@@ -329,7 +329,7 @@ class PortfolioOptimizer:
                 from scipy.optimize import minimize
                 ns = max(5, min(n * 2, 20))
                 for si in range(ns):
-                    x0 = [1.0 / n] * n if si == 0 else _rand_simplex(n)
+                    x0 = [1.0 / n] * n if si == 0 else _rand_simplex(n, seed=si)
                     r = minimize(lambda w: -_obj(w, mu, sig, delta), x0, method="SLSQP",
                                  bounds=bnd, constraints=cs, options={"maxiter": 1000, "ftol": 1e-12})
                     if r.success and r.fun < best_f:
@@ -339,7 +339,7 @@ class PortfolioOptimizer:
                 if not ok:
                     relaxed, relaxed_cs = _diagnose_and_relax(cs, bnd, cx, n, self.config, _label)
                     for si in range(ns):
-                        x0 = [1.0 / n] * n if si == 0 else _rand_simplex(n)
+                        x0 = [1.0 / n] * n if si == 0 else _rand_simplex(n, seed=si)
                         r = minimize(lambda w: -_obj(w, mu, sig, delta), x0, method="SLSQP",
                                      bounds=bnd, constraints=relaxed_cs,
                                      options={"maxiter": 1000, "ftol": 1e-12})
@@ -434,6 +434,9 @@ class PortfolioOptimizer:
         pr, pc = self.incorporate_views(pi, cov, views or [], codes)
 
         ec = OptimizationConstraints()
+        evt_errors: list[str] = []
+        risk_budget_errors: list[str] = []
+
         if evt:
             try:
                 from jingsuan.evt_engine import EVTEngine
@@ -442,8 +445,10 @@ class PortfolioOptimizer:
                     fit = EVTEngine.fit_gpd(all_r)
                     evtr = EVTEngine.tail_var(fit)
                     ec.var_limit = evtr.var_99
-            except Exception:
-                pass
+                else:
+                    evt_errors.append(f"EVT requires >=50 observations, got {len(all_r)}")
+            except Exception as exc:
+                evt_errors.append(f"EVT engine failed: {exc}")
 
         if rbudget:
             try:
@@ -457,10 +462,17 @@ class PortfolioOptimizer:
                 ec.single_stock_max = lim.single_stock_max
                 ec.single_industry_max = lim.single_industry_max
                 ec.total_exposure_max = lim.total_exposure_max
-            except Exception:
-                pass
+            except Exception as exc:
+                risk_budget_errors.append(f"RiskBudget engine failed: {exc}")
 
-        return self.optimize(pr, pc, codes, curr_w, ec)
+        result = self.optimize(pr, pc, codes, curr_w, ec)
+
+        # Propagate engine errors into result
+        all_errors = evt_errors + risk_budget_errors
+        if all_errors:
+            result.relaxed_constraints = all_errors + result.relaxed_constraints
+
+        return result
 
     # ---------------------------------------------------------------
     # 回退
@@ -560,10 +572,12 @@ def _feasible(w, bnd, cs):
     return True
 
 
-def _rand_simplex(n):
-    """Random simplex point (Dirichlet)."""
+
+def _rand_simplex(n, seed: int | None = None):
+    """Random simplex point (Dirichlet) with optional seed for reproducibility."""
     import random
-    raw = [random.random() for _ in range(n)]
+    rng = random.Random(seed) if seed is not None else random.Random()
+    raw = [rng.random() for _ in range(n)]
     s = sum(raw)
     return [v / s for v in raw]
 
@@ -633,14 +647,6 @@ def _diagnose_and_relax(
     descriptions.append("all inequality constraints relaxed: problem is infeasible as specified")
     relaxed_cs = [c for c in cs if c["type"] == "eq"]
     return descriptions, relaxed_cs
-
-
-def _rand_simplex(n):
-    """Random simplex point (Dirichlet)."""
-    import random
-    raw = [random.random() for _ in range(n)]
-    s = sum(raw)
-    return [v / s for v in raw]
 
 
 def _simplex_grid(n, step):
