@@ -18,7 +18,7 @@ Usage:
 """
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 
 from shuju.utils import safe_divide
@@ -74,6 +74,8 @@ class BLOptimizationResult:
     turnover: Decimal = Decimal("0")
     n_positions: int = 0
     optimization_success: bool = True
+    relaxed_constraints: list[str] = field(default_factory=list)
+    """松弛的约束列表, 如 ['turnover_max: 0.20 → unconstrained (infeasible with max_weight=0.30)']"""
 
 
 class PortfolioOptimizer:
@@ -285,8 +287,23 @@ class PortfolioOptimizer:
             vl = float(ext_con.var_limit)
             cs.append({"type": "ineq", "fun": lambda w, vl=vl: vl - 2.326 * (_port_var(w, sig) ** 0.5)})
 
+        # Label ineq constraints for readable diagnosis messages
+        _label_map: list[str] = []
+        if self.config.volatility_target is not None:
+            _label_map.append("volatility_target")
+        if self.config.turnover_max is not None:
+            _label_map.append("turnover_max")
+        if ext_con and ext_con.var_limit is not None:
+            _label_map.append("var_limit")
+
+        def _label(idx: int) -> str:
+            if idx < len(_label_map):
+                return _label_map[idx]
+            return f"ineq_constraint_#{idx}"
+
         try:
-            best_x, best_f, ok, feasibility_warnings = None, float("inf"), False, []
+            best_x, best_f, ok = None, float("inf"), False
+            relaxed: list[str] = []
 
             if n <= 5:
                 feasible_count = 0
@@ -300,8 +317,7 @@ class PortfolioOptimizer:
                         ok = True
 
                 if feasible_count == 0:
-                    # 约束不可行: 松弛 turnover 约束再试
-                    relaxed_cs = [_relax_turnover_constraint(c, cx) for c in cs]
+                    relaxed, relaxed_cs = _diagnose_and_relax(cs, bnd, cx, n, self.config, _label)
                     for cand in _simplex_grid(n, 0.05):
                         if not _feasible(cand, bnd, relaxed_cs):
                             continue
@@ -309,14 +325,6 @@ class PortfolioOptimizer:
                         if fx < best_f:
                             best_f, best_x = fx, cand
                             ok = True
-                    if ok:
-                        feasibility_warnings.append(
-                            "turnover constraint relaxed: max_weight + current_weights made original limit infeasible"
-                        )
-                    else:
-                        feasibility_warnings.append(
-                            "all constraints infeasible: falling back to equal weight"
-                        )
             else:
                 from scipy.optimize import minimize
                 ns = max(5, min(n * 2, 20))
@@ -329,8 +337,7 @@ class PortfolioOptimizer:
                         ok = True
 
                 if not ok:
-                    # 松弛 turnover 约束
-                    relaxed_cs = [_relax_turnover_constraint(c, cx) for c in cs]
+                    relaxed, relaxed_cs = _diagnose_and_relax(cs, bnd, cx, n, self.config, _label)
                     for si in range(ns):
                         x0 = [1.0 / n] * n if si == 0 else _rand_simplex(n)
                         r = minimize(lambda w: -_obj(w, mu, sig, delta), x0, method="SLSQP",
@@ -339,14 +346,14 @@ class PortfolioOptimizer:
                         if r.success and r.fun < best_f:
                             best_f, best_x = r.fun, r.x
                             ok = True
-                    if ok:
-                        feasibility_warnings.append(
-                            "turnover constraint relaxed: max_weight + current_weights made original limit infeasible"
-                        )
-                    else:
-                        feasibility_warnings.append(
-                            "all constraints infeasible: falling back to equal weight"
-                        )
+                    if not ok:
+                        relaxed.append("all constraints infeasible: falling back to equal weight")
+
+            if relaxed:
+                import logging
+                logging.getLogger(__name__).warning(
+                    "PortfolioOptimizer constraints relaxed: %s", "; ".join(relaxed)
+                )
 
             if not ok:
                 raw = [Decimal("1") / Decimal(n)] * n
@@ -354,12 +361,6 @@ class PortfolioOptimizer:
             else:
                 raw = [Decimal(str(max(v, 0.0))) for v in best_x]
                 ok = True
-
-            if feasibility_warnings:
-                import logging
-                logging.getLogger(__name__).warning(
-                    "PortfolioOptimizer: %s", "; ".join(feasibility_warnings)
-                )
 
         except Exception:
             raw = self._fallback(post_ret, post_cov)
@@ -410,6 +411,7 @@ class PortfolioOptimizer:
             var_95=v95, var_99=v99,
             turnover=to, n_positions=np_,
             optimization_success=ok,
+            relaxed_constraints=relaxed,
         )
 
     # ---------------------------------------------------------------
@@ -566,18 +568,79 @@ def _rand_simplex(n):
     return [v / s for v in raw]
 
 
-def _relax_turnover_constraint(c: dict, cx: list[float]) -> dict:
-    """Relax turnover constraint to avoid infeasibility.
+def _get_constraint_name(label_fn, ineq_idx: int) -> str:
+    """Get human-readable constraint name from the label function."""
+    if label_fn is not None:
+        return label_fn(ineq_idx)
+    return f"ineq_constraint_#{ineq_idx}"
 
-    When max_weight makes the turnover constraint impossible to satisfy
-    (e.g. current weight 0.8, max_weight 0.3 -> min turnover > 0.5),
-    we remove the turnover constraint entirely.
+
+def _diagnose_and_relax(
+    cs: list[dict], bnd: list[tuple[float, float]], cx: list[float],
+    n: int, config, label_fn=None,
+) -> tuple[list[str], list[dict]]:
+    """Diagnose infeasible constraints and relax greedily until feasible.
+
+    Strategy: start with the original constraints. Try each relaxation in
+    priority order (least destructive first), stopping as soon as a feasible
+    point is found.
+
+    Returns (descriptions, relaxed_constraints).
     """
-    if c["type"] == "ineq" and abs(c["fun"](cx)) > 0.9:
-        # This is a turnover constraint that is severely violated at current weights
-        # Replace with a no-op constraint (turnover <= 1.0, always satisfied)
-        return {"type": "ineq", "fun": lambda w: 1.0}
-    return c
+    descriptions: list[str] = []
+
+    # 1. Check if turnover is the bottleneck: compute min feasible turnover
+    w_max = max(b[1] for b in bnd)
+    min_to = sum(max(wi - w_max, 0.0) for wi in cx) / 2.0
+
+    # Identify the turnover constraint (inequality severely violated at cx)
+    turnover_idx: int | None = None
+    for idx, c in enumerate(cs):
+        if c["type"] == "ineq":
+            try:
+                val = c["fun"](cx)
+                if val < -0.01 and min_to > 0.001:
+                    turnover_idx = idx
+                    break
+            except Exception:
+                pass
+
+    if turnover_idx is not None:
+        desc = (
+            f"turnover_max relaxed: min feasible turnover={min_to:.3f} "
+            f"exceeds limit due to max_weight={w_max:.3f} with current concentrated position"
+        )
+        descriptions.append(desc)
+        relaxed_cs = [c if i != turnover_idx else {"type": "ineq", "fun": lambda w: 1.0}
+                      for i, c in enumerate(cs)]
+        return descriptions, relaxed_cs
+
+    # 2. Check if volatility target or var_limit is the bottleneck
+    # Try removing them one at a time
+    ineq_idx = 0  # index within inequality constraints only (matches _label_map)
+    for idx, c in enumerate(cs):
+        if c["type"] == "ineq":
+            test_cs = [cc for i, cc in enumerate(cs) if i != idx]
+            for cand in _simplex_grid(n, 0.05):
+                if _feasible(cand, bnd, test_cs):
+                    name = _get_constraint_name(label_fn, ineq_idx)
+                    desc = f"{name} relaxed: infeasible with current bounds+weights"
+                    descriptions.append(desc)
+                    return descriptions, test_cs
+            ineq_idx += 1
+
+    # 3. Last resort: remove all inequality constraints
+    descriptions.append("all inequality constraints relaxed: problem is infeasible as specified")
+    relaxed_cs = [c for c in cs if c["type"] == "eq"]
+    return descriptions, relaxed_cs
+
+
+def _rand_simplex(n):
+    """Random simplex point (Dirichlet)."""
+    import random
+    raw = [random.random() for _ in range(n)]
+    s = sum(raw)
+    return [v / s for v in raw]
 
 
 def _simplex_grid(n, step):
