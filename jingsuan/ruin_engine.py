@@ -12,7 +12,7 @@
     最优仓位: f* = argmax E[W_T] subject to ψ <= ε
 
 Usage:
-    from jingsuan.ruin_engine import RuinEngine, RuinConfig
+    from jingsuan import RuinEngine, RuinConfig
     f_star = RuinEngine.optimal_position_size(returns, config)
 """
 

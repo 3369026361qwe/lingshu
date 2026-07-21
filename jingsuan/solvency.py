@@ -10,7 +10,7 @@ Solvency II SCR 计算器 — 风险资本聚合 (v4.0).
     标准相关矩阵: ρ(market,credit)=0.25, ρ(market,op)=0, ρ(credit,op)=0
 
 Usage:
-    from jingsuan.solvency import SCRCalculator
+    from jingsuan import SCRCalculator
     scr = SCRCalculator.calculate_scr(evt_var_995, ...)
 """
 

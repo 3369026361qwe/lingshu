@@ -16,4 +16,26 @@ Modules:
     risk_budget     — 动态风险预算引擎
 """
 
+from .copula_engine import CopulaEngine, CopulaType
+from .credibility import CredibilityEngine, SourceTrackRecord
+from .evt_engine import EVTEngine
+from .risk_budget import RiskBudgetEngine
+from .ruin_engine import RuinConfig, RuinEngine
+from .scenario_gen import ScenarioGenerator
+from .solvency import SCRCalculator
+from .stress_engine import StressEngine
+from .var_backtest import VaRBacktestSuite
+
+__all__ = [
+    "CopulaEngine", "CopulaType",
+    "CredibilityEngine", "SourceTrackRecord",
+    "EVTEngine",
+    "RiskBudgetEngine",
+    "RuinEngine", "RuinConfig",
+    "ScenarioGenerator",
+    "SCRCalculator",
+    "StressEngine",
+    "VaRBacktestSuite",
+]
+
 __version__ = "4.0.0"

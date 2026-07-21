@@ -14,7 +14,7 @@
         μ̂_i = Z_i · X̄_i^w + (1 - Z_i) · μ     (后验估计)
 
 Usage:
-    from jingsuan.credibility import CredibilityEngine, SourceTrackRecord
+    from jingsuan import CredibilityEngine, SourceTrackRecord
     weights = CredibilityEngine.buhlmann_straub(sources)
 """
 

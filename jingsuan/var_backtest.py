@@ -11,7 +11,7 @@ VaR 回测检验套件 — Kupiec / Christoffersen / Acerbi-Szekely (v4.0).
     Basel 红绿灯: Green 1-4 / Yellow 5-9 / Red ≥10
 
 Usage:
-    from jingsuan.var_backtest import VaRBacktestSuite
+    from jingsuan import VaRBacktestSuite
     result = VaRBacktestSuite.run_all(var_forecasts, actual_losses)
 """
 

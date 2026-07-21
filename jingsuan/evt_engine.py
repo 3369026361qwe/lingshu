@@ -11,7 +11,7 @@ EVT 极值理论引擎 — GPD/POT 尾部风险建模 (v4.0).
     Hill_ξ = (1/k) * Σ ln(X_{(i)}/X_{(k+1)})
 
 Usage:
-    from jingsuan.evt_engine import EVTEngine
+    from jingsuan import EVTEngine
     fit = EVTEngine.fit_gpd(returns)
     var = EVTEngine.tail_var(fit)
 """
