@@ -904,6 +904,7 @@ class DBBacktestRunner:
 
             with SessionContext() as s:
                 if snapshots:
+                    snap_before = s.execute(text('SELECT COUNT(*) FROM portfolio_snapshot')).scalar()
                     stmt = text(
                         'INSERT INTO portfolio_snapshot (trade_date, total_value, cash, market_value, '
                         'daily_return, cumulative_return, position_count, updated_at) '
@@ -914,10 +915,10 @@ class DBBacktestRunner:
                         s.execute(stmt, snapshots[i:i + 2000])
                     s.commit()
 
-                snap_after = s.execute(text('SELECT COUNT(*) FROM portfolio_snapshot')).scalar()
+                    snap_after = s.execute(text('SELECT COUNT(*) FROM portfolio_snapshot')).scalar()
 
-                _log.info('portfolio_snapshot: %s → %s (+%s)',
-                          snap_before, snap_after, snap_after - snap_before)
+                    _log.info('portfolio_snapshot: %s → %s (+%s)',
+                              snap_before, snap_after, snap_after - snap_before)
 
                 # Risk logs
                 if risk_events:

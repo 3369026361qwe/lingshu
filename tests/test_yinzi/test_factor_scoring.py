@@ -201,6 +201,7 @@ def test_final_grade_zero_max():
 def test_regime_with_hmm_model():
     """使用 HMM 模型时，_score_regime 仍产生有效分数。"""
     from decimal import Decimal
+
     from yinzi.regime_detector import HMMRegimeDetector
 
     r = _make_result()

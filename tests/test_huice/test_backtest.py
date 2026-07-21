@@ -160,6 +160,7 @@ class TestPurgedKFold:
 
     def test_too_few_dates(self):
         import pytest
+
         from huice.cross_validation import PurgedKFold
         pkf = PurgedKFold(n_splits=5)
         with pytest.raises(ValueError):
@@ -167,6 +168,7 @@ class TestPurgedKFold:
 
     def test_invalid_params(self):
         import pytest
+
         from huice.cross_validation import PurgedKFold
         with pytest.raises(ValueError):
             PurgedKFold(n_splits=1)
@@ -191,7 +193,7 @@ class TestWalkForwardCV:
         dates = [str(i) for i in range(400)]
         wf = WalkForwardCV(min_train_size=200, step_size=50, test_size=50, expanding=True)
         folds = list(wf.split(dates))
-        for i, (train, test) in enumerate(folds):
+        for i, (train, _test) in enumerate(folds):
             if i == 0:
                 assert len(train) == 200
             if i > 0:
@@ -203,11 +205,12 @@ class TestWalkForwardCV:
         dates = [str(i) for i in range(400)]
         wf = WalkForwardCV(min_train_size=200, step_size=50, test_size=50, expanding=False)
         folds = list(wf.split(dates))
-        for train, test in folds:
+        for train, _test in folds:
             assert len(train) == 200  # 固定窗口
 
     def test_too_few_dates(self):
         import pytest
+
         from huice.cross_validation import WalkForwardCV
         wf = WalkForwardCV(min_train_size=300, test_size=100)
         with pytest.raises(ValueError):

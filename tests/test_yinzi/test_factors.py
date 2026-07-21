@@ -245,8 +245,9 @@ class TestValidateAllFDR:
 
     def test_validate_all_no_ic_series(self):
         """无 IC 序列时跳过 FDR，保持基本结果。"""
-        from yinzi.factor_validator import FactorValidator
         import random
+
+        from yinzi.factor_validator import FactorValidator
         random.seed(42)
         fv = {f"{i:06d}": Decimal(str(random.uniform(-2, 2))) for i in range(50)}
         fr = {f"{i:06d}": Decimal(str(random.gauss(0.001, 0.02))) for i in range(50)}
@@ -287,8 +288,9 @@ class TestGARCHOnIC:
 
     def test_garch_on_ic_series(self):
         """IC 序列 >= 50 时拟合 GARCH。"""
-        from yinzi.factor_validator import FactorValidator
         import random
+
+        from yinzi.factor_validator import FactorValidator
         random.seed(42)
         ic = self._make_garch_ic(100)
         fv = {f"{i:06d}": Decimal(str(random.uniform(-2, 2))) for i in range(50)}
@@ -306,8 +308,9 @@ class TestGARCHOnIC:
 
     def test_garch_skip_short_series(self):
         """IC 序列 < 50 时跳过 GARCH。"""
-        from yinzi.factor_validator import FactorValidator
         import random
+
+        from yinzi.factor_validator import FactorValidator
         random.seed(42)
         ic_short = [Decimal(str(random.gauss(0, 0.02))) for _ in range(24)]
         fv = {f"{i:06d}": Decimal(str(random.uniform(-2, 2))) for i in range(50)}

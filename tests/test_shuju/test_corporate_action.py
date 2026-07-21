@@ -4,8 +4,6 @@
 
 from decimal import Decimal
 
-import pytest
-
 from shuju.corporate_action import CorporateActionAdjuster
 
 

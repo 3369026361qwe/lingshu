@@ -1,13 +1,13 @@
-<h1 align="center">灵枢 LingShu v4.0</h1>
+<h1 align="center">灵枢 LingShu v4.2</h1>
 
 <p align="center">
   <strong>精算级 A 股量化投资系统 — LLM 多智能体 × 图神经网络 × 精算风控</strong>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-4.0.0-blue" alt="Version">
-  <img src="https://img.shields.io/badge/python-≥3.11-blue" alt="Python">
-  <img src="https://img.shields.io/badge/tests-480_passed-brightgreen" alt="Tests">
+  <img src="https://img.shields.io/badge/version-4.2.4-blue" alt="Version">
+  <img src="https://img.shields.io/badge/python-≥3.10-blue" alt="Python">
+  <img src="https://img.shields.io/badge/tests-723_passed-brightgreen" alt="Tests">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
 </p>
 
@@ -244,7 +244,7 @@ Black-Litterman (Ledoit-Wolf 收缩 + 贝叶斯更新) + 分层风险平价 (HRP
 ## 测试
 
 ```bash
-python -m pytest tests/ -v              # 后端 480 tests
+python -m pytest tests/ -v              # 后端 723 tests
 cd qianduan && npx vitest run           # 前端 37 tests
 
 # 按模块
@@ -260,14 +260,14 @@ python -m pytest tests/test_huice/ -v
 | yinzi | 94 | ✅ |
 | zhinengti | 32 | ✅ |
 | tushenjing | 67 | ✅ |
-| jingsuan | — | 🔜 v4.1 |
+| jingsuan | 53 | ✅ |
 | juece | 37 | ✅ |
 | fengkong | 26 | ✅ |
 | zhixing | 20 | ✅ |
 | huice | 20 | ✅ |
 | jiekou | 19 | ✅ |
 | qianduan | 37 | ✅ |
-| **合计** | **480** | |
+| **合计** | **723** | |
 
 ---
 
