@@ -192,3 +192,138 @@ class TestFactorResult:
         results = f.compute_batch(["000001", "000002"], {}, fin_map)
         assert len(results) == 2
         assert results[0].raw_value == Decimal("15")
+
+
+# ── FDR + GARCH validation ──────────────────────────────────────────────────
+
+
+class TestValidateAllFDR:
+    """validate_all() 批量因子检验 + FDR 校正。"""
+
+    @staticmethod
+    def _make_factor(name, n_stocks=100, mean_ic=0.03, ic_std=0.05, n_periods=24):
+        """生成模拟因子数据。"""
+        import random
+        random.seed(hash(name) % 2**31)
+        factor_values = {f"{i:06d}": Decimal(str(random.uniform(-2, 2))) for i in range(1, n_stocks + 1)}
+        forward_returns = {f"{i:06d}": Decimal(str(random.gauss(0.001, 0.02))) for i in range(1, n_stocks + 1)}
+        ic_series = [
+            Decimal(str(random.gauss(mean_ic, ic_std))) for _ in range(n_periods)
+        ]
+        return {"name": name, "factor_values": factor_values, "forward_returns": forward_returns, "ic_series": ic_series}
+
+    def test_validate_all_basic(self):
+        """validate_all 对多因子运行，返回 FDR 分类。"""
+        from yinzi.factor_validator import FactorValidator
+        factors = [
+            self._make_factor("alpha", mean_ic=0.04, ic_std=0.03),
+            self._make_factor("beta", mean_ic=0.01, ic_std=0.05),
+            self._make_factor("gamma", mean_ic=0.06, ic_std=0.02),
+        ]
+        report = FactorValidator.validate_all(factors, run_garch=False)
+        assert report["n_factors"] == 3
+        assert "fdr_method" in report
+        assert "results" in report
+        assert len(report["results"]) == 3
+        # 至少有一个因子被标记分类
+        for r in report["results"]:
+            assert "factor_name" in r
+            assert r.get("ic_pvalue") is not None
+            assert "fdr_classification" in r
+            assert r["fdr_classification"] in ("显著", "需审查")
+
+    def test_validate_all_single_factor(self):
+        """单因子时不跑 BH，直接给 p-value 和分类。"""
+        from yinzi.factor_validator import FactorValidator
+        factors = [self._make_factor("solo", mean_ic=0.05, ic_std=0.02)]
+        report = FactorValidator.validate_all(factors, run_garch=False)
+        assert report["n_factors"] == 1
+        assert report["n_tested"] == 1
+        assert len(report["results"]) == 1
+        r = report["results"][0]
+        assert r["fdr_classification"] in ("显著", "需审查")
+
+    def test_validate_all_no_ic_series(self):
+        """无 IC 序列时跳过 FDR，保持基本结果。"""
+        from yinzi.factor_validator import FactorValidator
+        import random
+        random.seed(42)
+        fv = {f"{i:06d}": Decimal(str(random.uniform(-2, 2))) for i in range(50)}
+        fr = {f"{i:06d}": Decimal(str(random.gauss(0.001, 0.02))) for i in range(50)}
+        factors = [{"name": "no_ic", "factor_values": fv, "forward_returns": fr}]
+        report = FactorValidator.validate_all(factors, run_garch=False)
+        assert report["n_factors"] == 1
+        assert "adjusted_pvalue" not in report["results"][0]  # 没有 p-value
+
+    def test_validate_all_significant_vs_review(self):
+        """强因子标显著，弱因子标需审查。"""
+        from yinzi.factor_validator import FactorValidator
+        factors = [
+            self._make_factor("strong", mean_ic=0.08, ic_std=0.02),
+            self._make_factor("weak", mean_ic=0.001, ic_std=0.05),
+        ]
+        report = FactorValidator.validate_all(factors, run_garch=False)
+        strong = report["results"][0]
+        weak = report["results"][1]
+        # 强因子的 IC t-stat 应该更大
+        assert strong.get("ic_t_stat", 0) > weak.get("ic_t_stat", 0)
+
+
+class TestGARCHOnIC:
+    """validate_all() 对 IC 序列拟合 GARCH。"""
+
+    @staticmethod
+    def _make_garch_ic(n=100):
+        """生成有波动率聚类的模拟 IC 序列。"""
+        import random
+        random.seed(42)
+        sigma2 = 0.0004
+        ic = []
+        for _ in range(n):
+            eps = random.gauss(0, sigma2**0.5)
+            sigma2 = 0.00001 + 0.15 * eps**2 + 0.80 * sigma2
+            ic.append(Decimal(str(eps)))
+        return ic
+
+    def test_garch_on_ic_series(self):
+        """IC 序列 >= 50 时拟合 GARCH。"""
+        from yinzi.factor_validator import FactorValidator
+        import random
+        random.seed(42)
+        ic = self._make_garch_ic(100)
+        fv = {f"{i:06d}": Decimal(str(random.uniform(-2, 2))) for i in range(50)}
+        fr = {f"{i:06d}": Decimal(str(random.gauss(0.001, 0.02))) for i in range(50)}
+        factors = [{"name": "garch_test", "factor_values": fv, "forward_returns": fr, "ic_series": ic}]
+        report = FactorValidator.validate_all(factors, run_garch=True)
+        r = report["results"][0]
+        assert report["n_garch_fitted"] == 1
+        assert "garch_model" in r
+        assert r["garch_model"] == "GARCH(1,1)"
+        assert "garch_persistence" in r
+        assert "garch_cond_vol_mean" in r
+        assert "garch_stability" in r
+        assert r["garch_stability"] in ("稳定", "中等", "不稳定")
+
+    def test_garch_skip_short_series(self):
+        """IC 序列 < 50 时跳过 GARCH。"""
+        from yinzi.factor_validator import FactorValidator
+        import random
+        random.seed(42)
+        ic_short = [Decimal(str(random.gauss(0, 0.02))) for _ in range(24)]
+        fv = {f"{i:06d}": Decimal(str(random.uniform(-2, 2))) for i in range(50)}
+        fr = {f"{i:06d}": Decimal(str(random.gauss(0.001, 0.02))) for i in range(50)}
+        factors = [{"name": "short_ic", "factor_values": fv, "forward_returns": fr, "ic_series": ic_short}]
+        report = FactorValidator.validate_all(factors, run_garch=True)
+        assert report["n_garch_fitted"] == 0
+
+    def test_garch_disabled(self):
+        """run_garch=False 时跳过。"""
+        from yinzi.factor_validator import FactorValidator
+        ic = self._make_garch_ic(100)
+        import random
+        random.seed(42)
+        fv = {f"{i:06d}": Decimal(str(random.uniform(-2, 2))) for i in range(50)}
+        fr = {f"{i:06d}": Decimal(str(random.gauss(0.001, 0.02))) for i in range(50)}
+        factors = [{"name": "no_garch", "factor_values": fv, "forward_returns": fr, "ic_series": ic}]
+        report = FactorValidator.validate_all(factors, run_garch=False)
+        assert report["n_garch_fitted"] == 0

@@ -2,6 +2,9 @@
 
 每个函数签名：(result: dict, summary_dict: dict, fname: str) -> None
 通过修改 result 字典来累积分数、检查描述和警告。
+
+v4.1 HMM 升级: _score_regime 支持 HMMRegimeDetector 标签，
+fallback 到原有的 DEFAULT_REGIME_ORDER 简单分类。
 """
 from statistics import stdev
 
@@ -73,8 +76,26 @@ def _score_ic_decay(result: dict, ic_decay_summary: dict, fname: str) -> None:
         result['checks']['ic_decay'] = desc + ' ✗ NO_POWER'
 
 
-def _score_regime(result: dict, regime_summary: dict, fname: str) -> None:
-    """Check 3: Regime robustness (weight: 15%). Max score = 15."""
+def _score_regime(
+    result: dict,
+    regime_summary: dict,
+    fname: str,
+    hmm_model: dict | None = None,
+    recent_returns: list | None = None,
+) -> None:
+    """Check 3: Regime robustness (weight: 15%). Max score = 15.
+
+    v4.1: 支持 HMM 体制标签。当 hmm_model 和 recent_returns 都提供时，
+    使用 HMMRegimeDetector 确定体制；否则 fallback 到原有的
+    DEFAULT_REGIME_ORDER 简单分类。
+
+    Args:
+        result: 累积评分字典
+        regime_summary: {factor_name: {regime_label: {mean_ic, ...}}}
+        fname: 因子名
+        hmm_model: HMM 模型（可选），来自 HMMRegimeDetector.fit()
+        recent_returns: 近期收益序列（可选），用于 HMM 体制预测
+    """
     result['max_score'] += 15
     if fname not in regime_summary:
         result['checks']['regime'] = 'NO DATA'
@@ -82,9 +103,29 @@ def _score_regime(result: dict, regime_summary: dict, fname: str) -> None:
 
     regimes = regime_summary[fname]
     ic_by_regime = {r: regimes[r]['mean_ic'] for r in regimes}
+
+    # 尝试 HMM 体制映射
+    regime_labels_used = DEFAULT_REGIME_ORDER
+    detector = 'simple'
+    if hmm_model is not None and recent_returns is not None and len(recent_returns) >= 20:
+        try:
+            from yinzi.regime_detector import HMMRegimeDetector
+            regime_idx = HMMRegimeDetector.predict_regime(recent_returns, hmm_model)
+            labels = hmm_model.get("regime_labels", {})
+            current_regime = labels.get(regime_idx, f"regime_{regime_idx}")
+            # 把 HMM 标签排到 regime_labels 前面作为主标签
+            if current_regime in ic_by_regime:
+                regime_labels_used = [
+                    current_regime,
+                    *(r for r in DEFAULT_REGIME_ORDER if r != current_regime),
+                ]
+            detector = f'hmm (state={regime_idx}, label={current_regime})'
+        except (ValueError, ImportError, TypeError):
+            pass  # HMM 不适合当前数据，静默 fallback 到简单分类
+
     desc = ' | '.join(
         f"{r}: IC={ic_by_regime[r]:+.4f}"
-        for r in DEFAULT_REGIME_ORDER if r in ic_by_regime
+        for r in regime_labels_used if r in ic_by_regime
     )
 
     if len(ic_by_regime) >= 3:
@@ -94,17 +135,17 @@ def _score_regime(result: dict, regime_summary: dict, fname: str) -> None:
 
         if sign_consistent and mag_variance < 0.03:
             result['score'] += 15
-            result['checks']['regime'] = desc + ' ✓ ROBUST'
+            result['checks']['regime'] = f'{desc} ✓ ROBUST [{detector}]'
         elif sign_consistent:
             result['score'] += 10
-            result['checks']['regime'] = desc + ' ✓ STABLE_SIGN'
+            result['checks']['regime'] = f'{desc} ✓ STABLE_SIGN [{detector}]'
         else:
             result['score'] += 5
-            result['checks']['regime'] = desc + ' ⚠ UNSTABLE'
+            result['checks']['regime'] = f'{desc} ⚠ UNSTABLE [{detector}]'
             result['warnings'].append('IC sign varies across regimes')
     elif len(ic_by_regime) >= 2:
         result['score'] += 8
-        result['checks']['regime'] = desc + ' ⚠ INCOMPLETE'
+        result['checks']['regime'] = f'{desc} ⚠ INCOMPLETE [{detector}]'
 
 
 def _score_monotonicity(result: dict, monotonicity_scores: dict, fname: str) -> None:
