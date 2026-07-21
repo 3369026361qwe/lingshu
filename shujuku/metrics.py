@@ -2,7 +2,7 @@
 Prometheus 指标导出 — 灵枢 v4.0 统一入口。
 
 所有模块的指标注册均通过本模块的 REGISTRY 和辅助函数完成。
-已有 10 个独立 metrics.py 继续工作（Phase 4 迁移），新增模块必须使用此入口。
+已有 10 个独立 metrics.py 继续工作（Phase 5 迁移），新增模块必须使用此入口。
 
 Usage:
     from shujuku.metrics import REGISTRY, new_counter, new_histogram, new_gauge
