@@ -141,42 +141,29 @@ lingshu/
 │       ├── components/ #   组件库
 │       ├── hooks/      #   自定义 Hooks
 │       └── stores/     #   Zustand 状态管理
-├── tests/              # 测试 — 按模块组织，480+ tests
+├── tests/              # 测试 — 按模块组织，723+ tests
 ├── scripts/            # 运维脚本 — 薄调用层
 ├── bushu/              # 部署 — Docker Compose + Prometheus + Grafana
 ├── alembic/            # 数据库迁移
 ├── data/               # 数据文件 (SQLite / GNN 权重 / GNN 预测)
-└── lingshulianghuasheji/  # 设计文档 + 重构蓝图 + 论文方案
+└── lingshulianghuasheji/  # 设计文档目录 (待重建)
 ```
 
 ---
 
-## 五大角色重构蓝图
+## 五大角色重构蓝图 ✅ 全部完成
 
-灵枢 v4.0 通过五个专业角色的联合重构，实现「个人实盘盈利 + 机构尽调通过」双重目标。
+灵枢 v4.2 已通过五个专业角色的联合重构，实现「个人实盘盈利 + 机构尽调通过」双重目标。
 
-| 角色 | 负责模块 | 核心方法论 |
-|------|---------|-----------|
-| 🧮 **精算师** | `jingsuan/` | EVT · Copula · 破产理论 · 信度理论 · Solvency II |
-| 📊 **量化金工** | `juece/` `huice/` `zhixing/` | Black-Litterman · HRP · Almgren-Chriss · 归因分析 |
-| 📈 **计量经济** | `yinzi/` `huice/` 验证 | FDR · DSR/PSR · GARCH · HMM · Walk-Forward CV |
-| 🏗️ **软件架构** | 全局工程 | Decimal 统一 · Config 加载 · 脚本重构 · 死代码清理 |
-| 🗄️ **数据工程** | `shuju/` `shujuku/` | 幸存者偏差 · 企业行为 · 数据质量 · PostgreSQL |
+| 角色 | 负责模块 | 核心方法论 | 状态 |
+|------|---------|-----------|:--:|
+| 🧮 **精算师** | `jingsuan/` | EVT · Copula · 破产理论 · 信度理论 · Solvency II | ✅ |
+| 📊 **量化金工** | `juece/` `huice/` `zhixing/` | Black-Litterman · HRP · Almgren-Chriss · 归因分析 | ✅ |
+| 📈 **计量经济** | `yinzi/` `huice/` 验证 | FDR · DSR/PSR · GARCH · HMM · Walk-Forward CV | ✅ |
+| 🏗️ **软件架构** | 全局工程 | Decimal 统一 · Config 加载 · 死代码清理 | ✅ |
+| 🗄️ **数据工程** | `shuju/` `shujuku/` | 幸存者偏差 · 企业行为 · 数据质量 · PostgreSQL | ✅ |
 
-### 分阶段推进
-
-```
-Phase 0: 软件架构 + 数据工程  →  接口契约 + 基础设施
-Phase 1: 精算师             →  jingsuan/ 精算中台
-Phase 2: 量化金工            →  BL + HRP + 事件驱动回测 + 归因
-Phase 3: 计量经济            →  FDR + DSR + GARCH + HMM
-Phase 4: 软件架构            →  代码整理 + 统一化
-Phase 5: 数据工程            →  数据治理 + PostgreSQL
-```
-
-### 并行开发（5 个 Claude Code 窗口 + git worktree）
-
-每个角色在独立 git worktree 中工作，通过接口契约协同。详见 **[重构蓝图](lingshulianghuasheji/重构蓝图.md)** — 包含完整数学公式、接口契约、伪代码和验证方法论。
+五个角色已于 2026-07-21 全部合并至 master，形成统一的 v4.2.4 代码基线。
 
 ---
 
@@ -287,8 +274,6 @@ API (8000) + PostgreSQL + Redis + Prometheus + Grafana (3000)，全部 healthche
 1. **精算方法论在量化投资中的应用** — EVT/Copula/破产理论/信度理论系统性迁移
 2. **LLM 多智能体与量化因子融合** — Bühlmann-Straub 信度加权框架
 3. **GNN 产业链信息传播** — 体制感知异构图神经网络
-
-详见 [`lingshulianghuasheji/论文优化方案.md`](lingshulianghuasheji/论文优化方案.md)
 
 ---
 

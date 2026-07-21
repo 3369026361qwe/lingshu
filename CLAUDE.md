@@ -2,7 +2,7 @@
 
 > **项目**: 灵枢 (LingShu) — 基于LLM多智能体与图神经网络的A股量化投资系统
 > **版本**: v4.2.4 | 日期: 2026-07-21
-> **设计文档**: lingshulianghuasheji/灵枢量化系统-设计文档.md
+> **设计文档**: (待重建)
 
 ---
 
@@ -110,12 +110,7 @@ E:\28721\lingshu\
 │   ├── run_full_period_backtest.py   # 全周期回测
 │   └── ...                           # (其他 13 脚本)
 │
-├── lingshulianghuasheji/   # 设计文档
-│   ├── 灵枢量化系统-设计文档.md
-│   ├── 重构蓝图.md            # 五角色重构详细方案
-│   ├── 论文优化方案.md
-│   ├── 优化计划.md
-│   └── CONTRACTS.md          # 接口契约
+├── lingshulianghuasheji/   # 设计文档 (待重建)
 │
 ├── CLAUDE.md               # 本文件
 ├── config.yaml              # 统一配置
