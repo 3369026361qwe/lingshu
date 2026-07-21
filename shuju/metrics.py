@@ -89,13 +89,6 @@ data_cache_hit_rate = Gauge(
     registry=REGISTRY,
 )
 
-data_cache_total_ops = Counter(
-    "lingshu_data_cache_ops_total",
-    "Total cache operations (hits + misses) for hit rate calculation",
-    ["data_type"],
-    registry=REGISTRY,
-)
-
 # ── 情感分析指标 ─────────────────────────────────────
 
 sentiment_analyzed_total = Counter(

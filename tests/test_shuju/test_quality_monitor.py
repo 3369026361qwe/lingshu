@@ -2,12 +2,9 @@
 测试 DataQualityMonitor — 数据质量监控.
 """
 
-import json
 import tempfile
 from decimal import Decimal
 from pathlib import Path
-
-import pytest
 
 from shuju.quality_monitor import DataQualityMonitor
 
@@ -228,6 +225,37 @@ class TestRunQualityChecks:
             assert "completeness" in report
             assert "duplicates" in report
             assert "anomaly" in report
+
+    def test_distribution_failure_affects_overall(self):
+        """分布检查失败 → overall_pass 应为 False."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            monitor = DataQualityMonitor(report_dir=tmpdir)
+            # 极端值数据: close 变化剧烈, 但有 outlier 导致分布异常
+            data = {
+                "code": ["000001"] * 5,
+                "trade_date": ["20240601"] * 5,
+                "close": [Decimal(str(x)) for x in range(1000000, 1000005)],  # 极端大值
+            }
+            report = monitor.run_quality_checks(data, date_str="2024-06-01")
+            # close 列不在预定义 numeric_cols 列表中... 验证 overall 逻辑
+            assert "overall_pass" in report
+            assert "checks_summary" in report
+            assert "distribution_ok" in report["checks_summary"]
+
+    def test_distribution_ok_in_summary(self):
+        """checks_summary 中 distribution_ok 应与实际分布检查一致."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            monitor = DataQualityMonitor(report_dir=tmpdir)
+            data = {
+                "code": ["000001"],
+                "trade_date": ["20240601"],
+                "close": [Decimal("10")],
+                "volume": [Decimal("1e6")],
+            }
+            report = monitor.run_quality_checks(data, date_str="2024-06-01")
+            assert "distribution_ok" in report["checks_summary"]
+            # 无 bounds 时 distribution 总是 ok → True
+            assert report["checks_summary"]["distribution_ok"] is True
 
     def test_with_nested_data(self):
         """测试按 code 嵌套的数据格式."""

@@ -2,20 +2,42 @@
 测试 UniverseManager — Point-in-Time 股票宇宙 + 幸存者偏差治理.
 """
 
-import os
+import logging
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
-
-import pytest
 
 from shuju.universe_manager import (
     UniverseManager,
-    _is_st_name,
+    _fuzzy_eq,
     _is_limit_board,
+    _is_st_name,
     _normalize_date,
     _to_float,
-    _fuzzy_eq,
 )
+
+
+@contextmanager
+def log_handler(name: str = "shuju.universe_manager"):
+    """捕获 logger 的 WARNING+ 消息."""
+    logger = logging.getLogger(name)
+    messages: list[str] = []
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.WARNING)
+    logger.addHandler(handler)
+
+    # 使用 custom handler 捕获
+    class _ListHandler(logging.Handler):
+        def emit(self, record):
+            messages.append(record.getMessage())
+
+    list_handler = _ListHandler()
+    logger.addHandler(list_handler)
+    try:
+        yield messages
+    finally:
+        logger.removeHandler(list_handler)
+        logger.removeHandler(handler)
 
 
 class TestNormalizeDate:
@@ -256,12 +278,14 @@ class TestFilterSTStar:
         assert result == ["000001"]
 
     def test_fallback_to_code(self):
-        """无名称映射时从代码检测 ST."""
+        """无名称映射时原样返回 (记录告警)."""
         # Create a clean manager with no names
         manager = UniverseManager()
-        result = manager.filter_st_star(["ST001", "000002", "*ST003"])
-        # Fallback: code-based detection — checks "ST" in code.upper()
-        assert "000002" in result  # only non-ST code
+        with log_handler() as logs:
+            result = manager.filter_st_star(["000001", "000002", "000003"])
+            # 无名称映射 → 无法判断, 原样返回
+            assert result == ["000001", "000002", "000003"]
+            assert any("跳过 ST 过滤" in msg for msg in logs)
 
 
 class TestFilterSuspended:

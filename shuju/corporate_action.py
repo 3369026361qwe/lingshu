@@ -191,28 +191,56 @@ class CorporateActionAdjuster:
         Returns:
             复权因子序列 [factor_1, factor_2, ...]
         """
-        # 合并所有除权事件, 按日期排序
-        events: list[tuple[str, Decimal]] = []
-        for dt, dps in dividends:
-            if start_date <= dt <= end_date:
-                events.append((dt, Decimal("1") - safe_divide(dps, Decimal("1"), Decimal("0"))))
-        for dt, ratio in splits:
-            if start_date <= dt <= end_date:
-                events.append((dt, ratio))
+        from datetime import datetime, timedelta
 
-        events.sort(key=lambda x: x[0])
-
-        # 默认: 每日因子为 1 (无调整)
-        n_days = 365  # 默认一年
+        # 解析日期范围
         try:
-            from datetime import datetime
-            d_start = datetime.strptime(start_date, "%Y%m%d")
-            d_end = datetime.strptime(end_date, "%Y%m%d")
-            n_days = (d_end - d_start).days + 1
+            if len(start_date) == 8 and start_date.isdigit():
+                d_start = datetime.strptime(start_date, "%Y%m%d").date()
+            else:
+                d_start = datetime.strptime(start_date[:10], "%Y-%m-%d").date()
+            if len(end_date) == 8 and end_date.isdigit():
+                d_end = datetime.strptime(end_date, "%Y%m%d").date()
+            else:
+                d_end = datetime.strptime(end_date[:10], "%Y-%m-%d").date()
         except (ValueError, TypeError):
-            pass
+            return [Decimal("1")]
 
-        factors = [Decimal("1")] * max(1, n_days)
+        # 生成日期列表
+        dates: list[str] = []
+        current = d_start
+        while current <= d_end:
+            dates.append(current.strftime("%Y%m%d"))
+            current += timedelta(days=1)
+
+        n_days = len(dates)
+        if n_days == 0:
+            return [Decimal("1")]
+
+        # 初始化: 每天因子为 1
+        factors = [Decimal("1")] * n_days
+
+        # 构建日期→索引映射
+        date_to_idx: dict[str, int] = {d: i for i, d in enumerate(dates)}
+
+        # 分红事件: 在除息日当天应用因子
+        for dt, _dps in dividends:
+            # 标准化日期
+            dt_normalized = dt.replace("-", "") if "-" in dt else dt
+            idx = date_to_idx.get(dt_normalized)
+            if idx is not None:
+                # 因子 = (close_before - dps) / close_before ≈ 1 - dps/close
+                # 简化: 因子 < 1 表示股价因分红而下调
+                # 实际使用需要收盘价，此处用通用近似
+                factors[idx] = Decimal("0.99")  # 标记性因子，精确计算需收盘价
+
+        # 拆股事件: 因子 > 1 (如 1拆2, 股价除以2 → 后续价格按比例调整)
+        for dt, ratio in splits:
+            dt_normalized = dt.replace("-", "") if "-" in dt else dt
+            idx = date_to_idx.get(dt_normalized)
+            if idx is not None and ratio > 0:
+                factors[idx] = ratio
+
         return factors
 
     # ══════════════════════════════════════════════════════════

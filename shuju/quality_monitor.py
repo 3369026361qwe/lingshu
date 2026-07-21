@@ -342,11 +342,13 @@ class DataQualityMonitor:
             )
 
         # 汇总
+        distribution_ok = len(dist_results) == 0
         all_pass = (
             completeness["overall_pass"]
             and dup_ok
             and fresh_ok
             and anomaly_ok
+            and distribution_ok
         )
 
         return {
@@ -364,7 +366,7 @@ class DataQualityMonitor:
                 "duplicates": dup_ok,
                 "freshness": fresh_ok,
                 "anomaly": anomaly_ok,
-                "distribution_ok": len(dist_results) == 0,
+                "distribution_ok": distribution_ok,
             },
         }
 

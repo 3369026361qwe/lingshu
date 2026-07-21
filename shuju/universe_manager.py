@@ -158,7 +158,27 @@ class UniverseManager:
                 except Exception:
                     continue
             self._active_names = result
-            _logger.info("从 AKShare 获取了 %d 只活跃股票", len(result))
+
+            # 同步获取上市日期 (stock_individual_info_em 逐只获取成本过高,
+            # 使用 stock_zh_a_spot 获取全量数据的 list_date 字段)
+            try:
+                import time as _time
+                _time.sleep(0.5)
+                spot_df = ak.stock_zh_a_spot()
+                if spot_df is not None and not spot_df.empty:
+                    for _, row in spot_df.iterrows():
+                        try:
+                            spot_code = str(row.get("代码", "")).zfill(6)
+                            list_date_raw = str(row.get("上市时间", ""))
+                            if spot_code and list_date_raw and len(spot_code) == 6:
+                                self._active_list_dates[spot_code] = _normalize_date(list_date_raw)
+                        except Exception:
+                            continue
+            except Exception as exc:
+                _logger.warning("获取上市日期失败 (非致命): %s", exc)
+
+            _logger.info("从 AKShare 获取了 %d 只活跃股票 (%d 有上市日期)",
+                         len(result), len(self._active_list_dates))
             return result
         except ImportError:
             _logger.warning("AKShare 不可用")
@@ -232,7 +252,7 @@ class UniverseManager:
         """过滤 ST / *ST 股票.
 
         优先使用 stock_names 参数的名称映射, 其次使用内部缓存的 _active_names.
-        两者都没有时回退到从代码检测 (保守策略).
+        两者都没有时, 无法判断, 原样返回所有股票 (记录警告).
 
         Args:
             universe: 股票代码列表
@@ -244,8 +264,12 @@ class UniverseManager:
         names = stock_names or self._active_names
         if names:
             return [code for code in universe if not _is_st_name(names.get(code, ""))]
-        # Fallback: 从代码检测
-        return [code for code in universe if "ST" not in code.upper()]
+        # 没有名称映射 → 无法判断 ST, 原样返回
+        _logger.warning(
+            "filter_st_star: 无股票名称映射, 跳过 ST 过滤 (%d 只股票未过滤)",
+            len(universe),
+        )
+        return list(universe)
 
     # ══════════════════════════════════════════════════════════
     # 停牌检测
