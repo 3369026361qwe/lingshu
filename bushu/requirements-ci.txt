@@ -1,4 +1,4 @@
-# CI 轻量依赖 — 仅包含测试和核心计算所需，不含 GPU/LLM/数据源
+# CI 轻量依赖 — 核心计算 + 测试 + 无 GPU/LLM/数据源
 # pip install -r bushu/requirements-ci.txt
 
 # Web framework (for jiekou API tests)

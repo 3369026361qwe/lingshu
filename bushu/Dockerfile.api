@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.10-slim
 WORKDIR /app
 
 # Install system deps
@@ -23,6 +23,9 @@ COPY fengkong/ ./fengkong/
 COPY zhixing/ ./zhixing/
 COPY huice/ ./huice/
 COPY jiekou/ ./jiekou/
+COPY jingsuan/ ./jingsuan/
+COPY scripts/ ./scripts/
+COPY config.yaml .
 
 # Install project in editable mode
 COPY pyproject.toml .
