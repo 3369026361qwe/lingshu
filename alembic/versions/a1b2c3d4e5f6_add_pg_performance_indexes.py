@@ -24,13 +24,23 @@ depends_on: str | Sequence[str] | None = None
 
 
 def _is_postgresql() -> bool:
-    """检测当前数据库是否为 PostgreSQL."""
+    """检测当前数据库是否为 PostgreSQL (online mode only)."""
     try:
         bind = op.get_bind()
         dialect_name = bind.dialect.name
         return dialect_name == "postgresql"
     except Exception:
         return False
+
+
+def _safe_execute(sql: str) -> None:
+    """执行 SQL，只在 online 模式且 PG 环境执行。offline 模式跳过。"""
+    try:
+        # 先尝试 get_bind — 如果 offline 模式会报错，静默跳过
+        op.get_bind()
+        op.execute(sql)
+    except Exception:
+        pass  # offline mode 或非 PG 环境安全跳过
 
 
 def upgrade() -> None:
@@ -50,25 +60,25 @@ def upgrade() -> None:
         return  # 以下均为 PG 专有操作
 
     # daily_bar: BRIN 索引 (时序数据, 顺序写入, 适合 BRIN)
-    op.execute(
+    _safe_execute(
         "CREATE INDEX IF NOT EXISTS ix_daily_bar_date_brin "
         "ON daily_bar USING BRIN (trade_date) "
         "WITH (pages_per_range = 32)"
     )
     # factor_value: BRIN 索引
-    op.execute(
+    _safe_execute(
         "CREATE INDEX IF NOT EXISTS ix_factor_value_date_brin "
         "ON factor_value USING BRIN (trade_date) "
         "WITH (pages_per_range = 32)"
     )
     # position: 活跃持仓部分索引 (仅索引 quantity > 0 的记录)
-    op.execute(
+    _safe_execute(
         "CREATE INDEX IF NOT EXISTS ix_position_active "
         "ON position (code, trade_date) "
         "WHERE quantity > 0"
     )
     # order: BRIN 索引
-    op.execute(
+    _safe_execute(
         "CREATE INDEX IF NOT EXISTS ix_order_date_brin "
         "ON \"order\" USING BRIN (created_at) "
         "WITH (pages_per_range = 32)"

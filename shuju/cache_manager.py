@@ -209,13 +209,8 @@ class DataCacheManager:
             return -1.0
 
 
-# ══════════════════════════════════════════════════════════════
-# 模块级辅助: 缓存命中率计算 (v4.1)
-# ══════════════════════════════════════════════════════════════
-
 def _update_hit_rate(data_type: str) -> None:
     """从 hits/misses Counter 实时计算并更新命中率 Gauge."""
-    # 使用 prometheus_client REGISTRY 的 get_sample_value() 获取计数值
     try:
         from prometheus_client import REGISTRY
 
@@ -229,4 +224,4 @@ def _update_hit_rate(data_type: str) -> None:
         if total > 0:
             data_cache_hit_rate.labels(data_type=data_type).set(hits_val / total)
     except Exception:
-        pass  # 指标收集失败时静默跳过
+        pass

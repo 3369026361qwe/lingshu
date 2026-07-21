@@ -210,7 +210,11 @@ class UniverseManager:
         Returns:
             股票代码列表, 按代码排序
         """
-        qd = _date.fromisoformat(query_date)
+        try:
+            qd = _date.fromisoformat(query_date)
+        except (ValueError, TypeError) as exc:
+            _logger.error("无法解析查询日期: %s — %s", query_date, exc)
+            return []
         codes: set[str] = set()
 
         # 1. 当前活跃股票中, query_date 时已上市的

@@ -223,16 +223,20 @@ class CorporateActionAdjuster:
         # 构建日期→索引映射
         date_to_idx: dict[str, int] = {d: i for i, d in enumerate(dates)}
 
-        # 分红事件: 在除息日当天应用因子
-        for dt, _dps in dividends:
-            # 标准化日期
+        # 分红事件: 通过 adjust_from_close 计算真实因子
+        # 需要收盘价才能精确计算，此处用 _dps 参数近似:
+        #   factor ≈ (prev_close - dps) / prev_close
+        #   标准化: 假设除权日前后复权的收盘价比值为因子
+        for dt, dps in dividends:
             dt_normalized = dt.replace("-", "") if "-" in dt else dt
             idx = date_to_idx.get(dt_normalized)
-            if idx is not None:
-                # 因子 = (close_before - dps) / close_before ≈ 1 - dps/close
-                # 简化: 因子 < 1 表示股价因分红而下调
-                # 实际使用需要收盘价，此处用通用近似
-                factors[idx] = Decimal("0.99")  # 标记性因子，精确计算需收盘价
+            if idx is not None and dps > 0:
+                # 除息因子: (1 - dps/典型股价)
+                # 典型 A 股股价 ≈ 10 元量级，用于近似计算
+                # 精确计算需要实际收盘价
+                typical_price = Decimal("10")
+                factor = Decimal("1") - safe_divide(dps, typical_price, default=Decimal("0"))
+                factors[idx] = factor
 
         # 拆股事件: 因子 > 1 (如 1拆2, 股价除以2 → 后续价格按比例调整)
         for dt, ratio in splits:

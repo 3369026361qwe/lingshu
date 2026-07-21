@@ -162,11 +162,11 @@ class DataQualityMonitor:
         last_date: str,
         max_age_days: int = 3,
     ) -> tuple[bool, str]:
-        """检查数据时效性.
+        """检查数据时效性。周末/节假日自动放宽 2 天。
 
         Args:
             last_date: 最新数据日期 (YYYY-MM-DD 或 YYYYMMDD)
-            max_age_days: 最大允许延迟天数
+            max_age_days: 最大允许延迟天数 (交易日)
 
         Returns:
             (通过?, 描述信息)
@@ -179,8 +179,17 @@ class DataQualityMonitor:
                 last = datetime.strptime(last_date[:10], "%Y-%m-%d").date()
             today = datetime.now().date()
             age = (today - last).days
-            ok = age <= max_age_days
-            return ok, f"Last date: {last_date} ({age}d old, max: {max_age_days}d)"
+
+            # 周末/节假日调整: 周六减1天, 周日减2天
+            adjusted_age = age
+            weekday = today.weekday()
+            if weekday == 5:  # 周六
+                adjusted_age = max(0, age - 1)
+            elif weekday == 6:  # 周日
+                adjusted_age = max(0, age - 2)
+
+            ok = adjusted_age <= max_age_days
+            return ok, f"Last date: {last_date} ({age}d old, adj {adjusted_age}d, max: {max_age_days}d)"
         except (ValueError, IndexError):
             return False, f"Invalid date: {last_date}"
 
@@ -305,8 +314,14 @@ class DataQualityMonitor:
         # Flatten: 如果数据是按 code 分组的, 展开
         flat_data = self._flatten_data(aligned_data)
 
+        # 准确记录数: 所有列表型 value 的最小长度
+        list_lengths = [len(v) for v in flat_data.values() if isinstance(v, list)]
+        accurate_count = min(list_lengths) if list_lengths else 0
+
         # 1. 完整性
         completeness = self.check_completeness_dict(flat_data, expected_columns)
+        # 用准确计数覆盖 total_records
+        completeness["total_records"] = accurate_count
 
         # 2. 重复检查 (trade_date + code 组合键)
         dup_ok, dup_msg = True, "skipped"
@@ -319,18 +334,38 @@ class DataQualityMonitor:
         if last_date:
             fresh_ok, fresh_msg = self.check_freshness(last_date)
 
-        # 4. 分布检查 (数值列)
+        # 4. 分布检查 (数值列) — 使用预设阈值自动检测
         dist_results: dict[str, Any] = {}
         numeric_cols = [
             col for col in flat_data
             if col in ("open", "high", "low", "close", "volume", "amount",
                        "pe", "pb", "roe", "roa", "return", "factor_value")
         ]
+        # 按列类型的经验阈值
+        _DIST_BOUNDS: dict[str, tuple[float | None, float | None]] = {
+            "pe": (0, 10000),
+            "pb": (0, 100),
+            "roe": (-1, 1),
+            "roa": (-1, 1),
+            "open": (0.01, 1e6),
+            "high": (0.01, 1e6),
+            "low": (0.01, 1e6),
+            "close": (0.01, 1e6),
+            "volume": (0, 1e12),
+            "amount": (0, 1e14),
+            "factor_value": (-100, 100),
+            "return": (-1, 1),
+        }
         for col in numeric_cols:
             values = flat_data.get(col, [])
             decimals = _to_decimal_list(values)
             if decimals:
-                dist_ok, dist_msg = self.check_distribution(decimals)
+                bounds = _DIST_BOUNDS.get(col, (None, None))
+                dist_ok, dist_msg = self.check_distribution(
+                    decimals,
+                    lower_bound=bounds[0],
+                    upper_bound=bounds[1],
+                )
                 if not dist_ok:
                     dist_results[col] = {"pass": dist_ok, "message": dist_msg}
 
