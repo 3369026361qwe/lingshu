@@ -6,11 +6,20 @@
     IR (Information Ratio)           — IC 均值 / IC 标准差
     分层回测                          — 按因子值分10组，计算各组平均收益
 
+FDR 校正 (v4.1):
+    validate_all() — 批量检验 + Benjamini-Hochberg FDR 校正 + 因子分类
+
+GARCH 波动率 (v4.1):
+    validate_all() 在 IC 序列上运行 GARCH(1,1)，输出条件波动率用于稳定性评分
+
 Usage:
     validator = FactorValidator()
     ic = validator.compute_rank_ic(factor_values, forward_returns)
     ir = validator.compute_ir(ic_series)
     layers = validator.layered_backtest(factor_values, forward_returns, n_groups=10)
+
+    # 批量检验 + FDR + GARCH
+    report = FactorValidator.validate_all(factors)
 """
 
 import logging
@@ -320,3 +329,264 @@ class FactorValidator:
         factor_coverage.labels(factor_name=factor_name).set(coverage)
 
         return result
+
+    # ── 批量检验 + FDR + GARCH ──────────────────────────
+
+    @staticmethod
+    def validate_all(
+        factors: list[dict],
+        fdr_alpha: float = 0.05,
+        run_garch: bool = True,
+    ) -> dict:
+        """批量因子检验 — 含 FDR 校正和 GARCH 条件波动率。
+
+        对多个因子逐一运行 validate()，收集 IC 序列的 p-value，
+        执行 Benjamini-Hochberg FDR 校正，并可选对每个因子的 IC
+        序列拟合 GARCH(1,1) 以输出条件波动率。
+
+        Args:
+            factors: [{name, factor_values, forward_returns, ic_series?}, ...]
+            fdr_alpha: FDR 控制水平 (默认 0.05)
+            run_garch: 是否对 IC 序列运行 GARCH（需要 len >= 50）
+
+        Returns:
+            {
+                n_factors, n_significant, n_review,
+                fdr_method, fdr_alpha,
+                results: [{factor_name, ic, ir, fdr_significant, adjusted_pvalue,
+                           garch_persistence?, garch_cond_vol_mean?, ...}, ...]
+            }
+        """
+        from yinzi.garch_models import GARCHEngine
+        from yinzi.multiple_testing import MultipleTestingCorrector
+
+        # 1. 逐个验证
+        individual_results = []
+        ic_pvalues: list[float] = []
+        valid_indices: list[int] = []
+
+        for i, f in enumerate(factors):
+            fname = f.get("name", f"factor_{i}")
+            fv = f.get("factor_values", {})
+            fr = f.get("forward_returns", {})
+            ic_series = f.get("ic_series")
+
+            vr = FactorValidator.validate(fname, fv, fr, ic_series)
+
+            # 2. 计算 IC t-test p-value
+            p_value = None
+            if ic_series and len(ic_series) >= 12:
+                ic_floats = [float(x) for x in ic_series]
+                n = len(ic_floats)
+                if n > 1:
+                    mean = sum(ic_floats) / n
+                    var = sum((x - mean) ** 2 for x in ic_floats) / (n - 1)
+                    se = (var / n) ** 0.5
+                    if se > 1e-12:
+                        t_stat = mean / se
+                        # 双尾 t-test p-value 近似
+                        p_value = _t_pvalue_two_sided(abs(t_stat), n - 1)
+                        vr["ic_t_stat"] = round(t_stat, 4)
+                        vr["ic_pvalue"] = round(p_value, 6)
+                        ic_pvalues.append(p_value)
+                        valid_indices.append(len(individual_results))
+
+            individual_results.append(vr)
+
+        # 3. FDR 校正 (Benjamini-Hochberg)
+        fdr_results = {}
+        if len(ic_pvalues) >= 2:
+            mt_result = MultipleTestingCorrector.benjamini_hochberg(
+                ic_pvalues, alpha=fdr_alpha,
+            )
+            # 映射回个体结果
+            for j, adj_idx in enumerate(valid_indices):
+                adj_p = mt_result.adjusted_pvalues[j]
+                rejected = mt_result.rejected[j]
+                individual_results[adj_idx]["adjusted_pvalue"] = round(adj_p, 6)
+                individual_results[adj_idx]["fdr_significant"] = rejected
+                individual_results[adj_idx]["fdr_classification"] = (
+                    "显著" if rejected else "需审查"
+                )
+
+            fdr_results = {
+                "fdr_method": mt_result.method,
+                "fdr_alpha": fdr_alpha,
+                "n_tested": mt_result.n_tests,
+                "n_rejected": mt_result.n_rejected,
+            }
+        elif len(ic_pvalues) == 1:
+            # 单因子：直接标记
+            individual_results[valid_indices[0]]["adjusted_pvalue"] = round(ic_pvalues[0], 6)
+            individual_results[valid_indices[0]]["fdr_significant"] = ic_pvalues[0] <= fdr_alpha
+            individual_results[valid_indices[0]]["fdr_classification"] = (
+                "显著" if ic_pvalues[0] <= fdr_alpha else "需审查"
+            )
+            fdr_results = {
+                "fdr_method": "无（仅1个因子）",
+                "fdr_alpha": fdr_alpha,
+                "n_tested": 1,
+                "n_rejected": 1 if ic_pvalues[0] <= fdr_alpha else 0,
+            }
+
+        # 4. GARCH 条件波动率
+        n_garch_fitted = 0
+        for i, vr in enumerate(individual_results):
+            f = factors[i]
+            ic_series = f.get("ic_series")
+            if not run_garch or not ic_series or len(ic_series) < 50:
+                continue
+
+            try:
+                ic_decimal = [Decimal(str(float(x))) for x in ic_series]
+                garch_result = GARCHEngine.garch_fit(ic_decimal)
+                cond_vol = [float(v) for v in garch_result.conditional_vol]
+                vr["garch_model"] = garch_result.model
+                vr["garch_persistence"] = float(garch_result.persistence)
+                vr["garch_converged"] = garch_result.converged
+                vr["garch_cond_vol_mean"] = round(
+                    sum(cond_vol) / max(len(cond_vol), 1), 6,
+                )
+                vr["garch_cond_vol_last"] = round(cond_vol[-1], 6) if cond_vol else None
+                # 稳定性评分
+                persistence = vr["garch_persistence"]
+                if persistence < 0.9 and vr["garch_cond_vol_mean"] < 0.03:
+                    vr["garch_stability"] = "稳定"
+                elif persistence < 0.95:
+                    vr["garch_stability"] = "中等"
+                else:
+                    vr["garch_stability"] = "不稳定"
+                n_garch_fitted += 1
+            except Exception as exc:
+                _logger.warning("GARCH fit failed for %s: %s",
+                               vr.get("factor_name", f"factor_{i}"), exc)
+
+        # 5. 汇总
+        n_significant = sum(
+            1 for r in individual_results if r.get("fdr_significant", False)
+        )
+        n_review = sum(
+            1 for r in individual_results
+            if "fdr_classification" in r and r["fdr_classification"] == "需审查"
+        )
+
+        return {
+            "n_factors": len(factors),
+            "n_significant": n_significant,
+            "n_review": n_review,
+            "n_garch_fitted": n_garch_fitted,
+            **fdr_results,
+            "results": individual_results,
+        }
+
+
+def _t_pvalue_two_sided(t_abs: float, df: int) -> float:
+    """双尾 t 检验 p-value 近似 (Abramowitz & Stegun 近似).
+
+    Args:
+        t_abs: |t| 统计量
+        df: 自由度
+
+    Returns:
+        双尾 p-value in [0, 1]
+    """
+
+    if df < 1:
+        return 1.0
+
+    # 使用不完全 Beta 函数的 Gaussian 近似
+    # 参考: Abramowitz & Stegun 26.7
+    x = df / (df + t_abs * t_abs)
+    # 改进的近似: 使用 Beta 正则化
+    p = _betai(df / 2, 0.5, x) if t_abs > 0 else 1.0
+    return min(p, 1.0)
+
+
+def _betai(a: float, b: float, x: float) -> float:
+    """正则化不完全 Beta 函数 I_x(a, b) 的近似。
+
+    用于 t 分布 p-value 计算。对于大 df，使用 Wilson-Hilferty 或
+    Satterthwaite 近似代替完整 Beta 积分。
+    """
+
+    if x <= 0:
+        return 0.0
+    if x >= 1:
+        return 1.0
+
+    # 对于 t-test p-value 计算，使用更稳健的数值方法
+    # 基于标准正态近似的 Welch-Satterthwaite 方法
+    # 简化但可靠的近似
+
+    # 利用 Beta 分布的连分式展开
+    # Lentz 算法
+    if x < (a + 1) / (a + b + 2):
+        # 用连分式求 I_x(a, b)
+        return _betacf(a, b, x)
+    else:
+        # 用对称性: I_x(a, b) = 1 - I_{1-x}(b, a)
+        return 1.0 - _betacf(b, a, 1.0 - x)
+
+
+def _betacf(a: float, b: float, x: float) -> float:
+    """正则化不完全 Beta 函数的连分式展开。
+
+    基于 Lentz 算法的改进版，用于计算 I_x(a, b)。
+    """
+    import math
+
+    max_iter = 200
+    eps = 3e-7
+
+    # 前置因子
+    qab = a + b
+    qap = a + 1.0
+    qam = a - 1.0
+    c = 1.0
+    d = 1.0 - qab * x / qap
+    if abs(d) < 1e-30:
+        d = 1e-30
+    d = 1.0 / d
+    h = d
+
+    for m in range(1, max_iter + 1):
+        m2 = 2 * m
+
+        # 偶步
+        aa = m * (b - m) * x / ((qam + m2) * (a + m2))
+        d = 1.0 + aa * d
+        if abs(d) < 1e-30:
+            d = 1e-30
+        c = 1.0 + aa / c
+        if abs(c) < 1e-30:
+            c = 1e-30
+        d = 1.0 / d
+        h *= d * c
+
+        # 奇步
+        aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2))
+        d = 1.0 + aa * d
+        if abs(d) < 1e-30:
+            d = 1e-30
+        c = 1.0 + aa / c
+        if abs(c) < 1e-30:
+            c = 1e-30
+        d = 1.0 / d
+        delta = d * c
+        h *= delta
+
+        if abs(delta - 1.0) < eps:
+            break
+
+    # 乘以 Beta 函数值近似
+    return (
+        h
+        * math.exp(
+            math.lgamma(a + b)
+            - math.lgamma(a)
+            - math.lgamma(b)
+            + a * math.log(x)
+            + b * math.log(1.0 - x)
+        )
+        / a
+    ) if a > 0 else 0.0
