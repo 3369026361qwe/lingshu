@@ -4,7 +4,7 @@ shuju 数据层 Prometheus 指标。
 复用 shujuku.metrics 的 REGISTRY，指标名统一使用 lingshu_ 前缀。
 """
 
-from prometheus_client import REGISTRY, Counter, Histogram
+from prometheus_client import REGISTRY, Counter, Gauge, Histogram
 
 # ── 数据采集指标 ─────────────────────────────────────
 
@@ -76,6 +76,15 @@ data_cache_hits = Counter(
 data_cache_misses = Counter(
     "lingshu_data_cache_misses_total",
     "Data cache misses",
+    ["data_type"],
+    registry=REGISTRY,
+)
+
+# ── 缓存命中率监控 (v4.1) ─────────────────────────────
+
+data_cache_hit_rate = Gauge(
+    "lingshu_data_cache_hit_rate",
+    "Cache hit rate (0.0 ~ 1.0) per data type",
     ["data_type"],
     registry=REGISTRY,
 )

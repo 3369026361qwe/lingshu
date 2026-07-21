@@ -14,7 +14,7 @@ from sqlalchemy import Engine, create_engine, event
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import NullPool
 
-from shujuku.config import DATABASE_URL, DB_ECHO, is_sqlite
+from shujuku.config import DATABASE_URL, DB_ECHO, get_pg_pool_config, is_sqlite
 from shujuku.metrics import session_pool_size
 
 _logger = logging.getLogger(__name__)
@@ -34,9 +34,12 @@ _engine_kwargs: dict = {
 if is_sqlite():
     _engine_kwargs["poolclass"] = NullPool
 else:
-    _engine_kwargs["pool_size"] = 5
-    _engine_kwargs["max_overflow"] = 10
-    _engine_kwargs["pool_pre_ping"] = True
+    pool_cfg = get_pg_pool_config()
+    _engine_kwargs["pool_size"] = pool_cfg["pool_size"]
+    _engine_kwargs["max_overflow"] = pool_cfg["max_overflow"]
+    _engine_kwargs["pool_timeout"] = pool_cfg["pool_timeout"]
+    _engine_kwargs["pool_recycle"] = pool_cfg["pool_recycle"]
+    _engine_kwargs["pool_pre_ping"] = pool_cfg["pool_pre_ping"]
 
 _engine: Engine = create_engine(DATABASE_URL, **_engine_kwargs)
 

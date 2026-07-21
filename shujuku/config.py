@@ -51,3 +51,29 @@ def is_sqlite() -> bool:
 def is_postgresql() -> bool:
     """判断当前是否为 PostgreSQL 模式。"""
     return DATABASE_URL.startswith("postgresql")
+
+
+# ══════════════════════════════════════════════════════════════
+# PostgreSQL 连接池配置 (v4.1)
+# ══════════════════════════════════════════════════════════════
+
+PG_POOL_SIZE: int = int(os.getenv("PG_POOL_SIZE", "5"))
+PG_MAX_OVERFLOW: int = int(os.getenv("PG_MAX_OVERFLOW", "10"))
+PG_POOL_TIMEOUT: int = int(os.getenv("PG_POOL_TIMEOUT", "30"))  # 等待连接超时 (秒)
+PG_POOL_RECYCLE: int = int(os.getenv("PG_POOL_RECYCLE", "3600"))  # 连接回收时间 (秒)
+PG_ECHO_SQL: bool = os.getenv("PG_ECHO_SQL", "0") == "1"
+
+
+def get_pg_pool_config() -> dict:
+    """返回 PostgreSQL 连接池配置字典.
+
+    Returns:
+        {pool_size, max_overflow, pool_timeout, pool_recycle, pool_pre_ping}
+    """
+    return {
+        "pool_size": PG_POOL_SIZE,
+        "max_overflow": PG_MAX_OVERFLOW,
+        "pool_timeout": PG_POOL_TIMEOUT,
+        "pool_recycle": PG_POOL_RECYCLE,
+        "pool_pre_ping": True,
+    }
