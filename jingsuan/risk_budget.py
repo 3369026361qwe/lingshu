@@ -5,7 +5,7 @@
 替代固定 10%/30%/95% 限制。
 
 Usage:
-    from jingsuan.risk_budget import RiskBudgetEngine
+    from jingsuan import RiskBudgetEngine
     limits = RiskBudgetEngine.compute_limits(evt_var, ruin, scr, positions)
 """
 

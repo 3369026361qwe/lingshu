@@ -193,3 +193,56 @@ def test_final_grade_zero_max():
     g = compute_final_grade(0, 0)
     assert g['score_pct'] == 0
     assert g['action'] == 'DROP'
+
+
+# ── HMM Regime tests (v4.1) ──────────────────────────────────────────────────
+
+
+def test_regime_with_hmm_model():
+    """使用 HMM 模型时，_score_regime 仍产生有效分数。"""
+    from decimal import Decimal
+    from yinzi.regime_detector import HMMRegimeDetector
+
+    r = _make_result()
+    summary = {'test_factor': {
+        'bull': {'mean_ic': 0.05},
+        'bear': {'mean_ic': 0.03},
+        'sideways': {'mean_ic': 0.04},
+    }}
+
+    # 创建 HMM 模型
+    import random
+    random.seed(42)
+    returns = [Decimal(str(random.gauss(0.0005, 0.015))) for _ in range(200)]
+    hmm_model = HMMRegimeDetector.fit(returns, n_regimes=3)
+
+    _score_regime(r, summary, 'test_factor', hmm_model=hmm_model, recent_returns=returns)
+    assert r['score'] > 0
+    assert 'hmm' in r['checks']['regime'].lower()
+
+
+def test_regime_hmm_fallback():
+    """HMM 模型为 None 时 fallback 到原行为。"""
+    r = _make_result()
+    summary = {'test_factor': {
+        'bull': {'mean_ic': 0.05},
+        'bear': {'mean_ic': -0.03},
+        'sideways': {'mean_ic': 0.01},
+    }}
+    _score_regime(r, summary, 'test_factor')
+    assert r['score'] == 5
+    assert 'UNSTABLE' in r['checks']['regime']
+
+
+def test_regime_with_hmm_missing_recent_returns():
+    """HMM 模型提供了但缺 recent_returns，fallback 到简单模式。"""
+    r = _make_result()
+    summary = {'test_factor': {
+        'bull': {'mean_ic': 0.05},
+        'bear': {'mean_ic': 0.03},
+        'sideways': {'mean_ic': 0.04},
+    }}
+    _score_regime(r, summary, 'test_factor', hmm_model={'regime_labels': {0: 'bear', 2: 'bull'}})
+    assert r['score'] == 15
+    # 无 recent_returns 所以用 simple detector
+    assert 'simple' in r['checks']['regime']

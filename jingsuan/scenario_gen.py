@@ -5,7 +5,7 @@
 生成压力测试和风险分析的随机情景。
 
 Usage:
-    from jingsuan.scenario_gen import ScenarioGenerator
+    from jingsuan import ScenarioGenerator
     scenarios = ScenarioGenerator.historical_bootstrap(returns_matrix)
 """
 

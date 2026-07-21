@@ -112,7 +112,7 @@ def init_db(drop_all: bool = False) -> None:
         RuntimeError: 生产环境下 drop_all=True 时抛出
     """
     # 延迟导入避免循环
-    from shujuku.models import Base  # noqa: E402
+    from shujuku.models import Base  # deferred import to avoid circular
 
     # 确保 data 目录存在 (SQLite)
     if is_sqlite():
