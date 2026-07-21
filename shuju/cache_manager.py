@@ -21,7 +21,7 @@ from typing import Any
 from shuju.config import get_config
 
 _CACHE = get_config()
-from shuju.metrics import data_cache_hits, data_cache_misses
+from shuju.metrics import data_cache_hit_rate, data_cache_hits, data_cache_misses
 from shujuku.redis_cache import CacheManager
 
 # ── Decimal 安全序列化 ──────────────────────────────────
@@ -51,7 +51,11 @@ def _decimal_decoder(dct: dict) -> dict:
 
 
 class DataCacheManager:
-    """数据层缓存管理器，封装通用 CacheManager 提供领域语义。"""
+    """数据层缓存管理器，封装通用 CacheManager 提供领域语义。
+
+    缓存命中率通过 Prometheus Gauge 实时暴露:
+        lingshu_data_cache_hit_rate{data_type="daily_bar"} 0.85
+    """
 
     def __init__(self) -> None:
         self._cache = CacheManager(key_prefix="lingshu:data:")
@@ -178,3 +182,51 @@ class DataCacheManager:
     @property
     def is_redis_available(self) -> bool:
         return self._cache.is_redis_available
+
+    def hit_rate(self, data_type: str) -> float:
+        """获取某类缓存的当前命中率.
+
+        Args:
+            data_type: 缓存类型 (daily_bar/financial/news/sentiment/industry/preprocessed)
+
+        Returns:
+            命中率 (0.0 ~ 1.0), 无数据时返回 -1.0
+        """
+        try:
+            from prometheus_client import REGISTRY
+
+            hits = REGISTRY.get_sample_value(
+                "lingshu_data_cache_hits_total", {"data_type": data_type}
+            ) or 0.0
+            misses = REGISTRY.get_sample_value(
+                "lingshu_data_cache_misses_total", {"data_type": data_type}
+            ) or 0.0
+            total = hits + misses
+            if total == 0:
+                return -1.0
+            return float(hits / total)
+        except Exception:
+            return -1.0
+
+
+# ══════════════════════════════════════════════════════════════
+# 模块级辅助: 缓存命中率计算 (v4.1)
+# ══════════════════════════════════════════════════════════════
+
+def _update_hit_rate(data_type: str) -> None:
+    """从 hits/misses Counter 实时计算并更新命中率 Gauge."""
+    # 使用 prometheus_client REGISTRY 的 get_sample_value() 获取计数值
+    try:
+        from prometheus_client import REGISTRY
+
+        hits_val = REGISTRY.get_sample_value(
+            "lingshu_data_cache_hits_total", {"data_type": data_type}
+        ) or 0.0
+        misses_val = REGISTRY.get_sample_value(
+            "lingshu_data_cache_misses_total", {"data_type": data_type}
+        ) or 0.0
+        total = hits_val + misses_val
+        if total > 0:
+            data_cache_hit_rate.labels(data_type=data_type).set(hits_val / total)
+    except Exception:
+        pass  # 指标收集失败时静默跳过
