@@ -15,47 +15,47 @@ E:\28721\lingshu\
 │   — 数据预处理/对齐/缓存 + 幸存者偏差治理
 │   — 企业行为调整 (corporate_action) + 质量监控 (quality_monitor)
 │
-├── yinzi/                  # 量化因子引擎 (17 py)
+├── yinzi/                  # 量化因子引擎 (18 py)
 │   — 41 因子 6 大类 (价值/动量/质量/波动率/情绪/另类)
 │   — 卡尔曼滤波 + FDR 多重检验 + GARCH/HMM
 │
-├── zhinengti/              # LLM多智能体 ★ 核心创新 (12 py)
+├── zhinengti/              # LLM多智能体 ★ 核心创新 (13 py)
 │   — 5 Agent 并行分析 (宏观/赛道/个股RAG/舆情/风控)
 │   — LangChain 编排 + 结构化输出 + Bühlmann-Straub 融合
 │
-├── tushenjing/             # 图神经网络引擎 ★ 核心创新 (8 py)
+├── tushenjing/             # 图神经网络引擎 ★ 核心创新 (9 py)
 │   — 5,208 节点 × 94,770 边 A 股异构图
 │   — GCN/GAT/HGT + PyG 训练 + NumPy 推理
 │
-├── jingsuan/               # 精算中台 ★ 核心创新 (13 py)
+├── jingsuan/               # 精算中台 ★ 核心创新 (14 py)
 │   — EVT 极值理论 (GPD/POT + GEV Block Maxima)
 │   — Copula 连接函数 (含 DCC-GARCH 时变)
 │   — 破产理论 / 信度理论 / 准备金评估
 │   — VaR 回测 (Kupiec/Christoffersen/DQ/Berkowitz)
 │   — 纯计算层: 无状态、无 IO、无数据库
 │
-├── juece/                  # 集成决策引擎 (9 py)
+├── juece/                  # 集成决策引擎 (10 py)
 │   — Black-Litterman + HRP 组合优化
 │   — 三路信号 Bühlmann-Straub 信度加权融合
 │   — BL 协方差 Ledoit-Wolf 收缩 + 贝叶斯更新
 │
-├── fengkong/               # 风控模块 (8 py)
+├── fengkong/               # 风控模块 (9 py)
 │   — 三态熔断器 + 仓位/行业/单票限制
 │   — VaR/CVaR 实时计算 + 历史场景压力测试
 │
-├── zhixing/                # 交易执行 (7 py)
+├── zhixing/                # 交易执行 (8 py)
 │   — 订单生命周期 + 批量调仓 + 模拟券商
 │   — 成交记录 + 持仓追踪
 │
-├── huice/                  # 回测系统 (7 py)
+├── huice/                  # 回测系统 (9 py)
 │   — 事件驱动回测引擎 + 绩效归因
 │   — DSR/PSR 防数据窥探 + Walk-Forward CV + 参数网格搜索
 │
-├── jiekou/                 # API 层 (5 py + routes/)
+├── jiekou/                 # API 层 (6 py + routes/)
 │   — FastAPI + WebSocket + 鉴权/限流/CORS
 │   — 选股/智能体/持仓/风控/回测/交易/GNN 端点
 │
-├── shujuku/                # 持久化层 (6 py + models/)
+├── shujuku/                # 持久化层 (8 py + models/)
 │   — SQLAlchemy 2.0 ORM + Alembic 迁移
 │   — Redis 缓存 + Prometheus 指标导出
 │
