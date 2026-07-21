@@ -272,7 +272,6 @@ class FactorFusion:
             # 行业内 Z-Score
             neutralized = {}
             for _ind, pairs in groups.items():
-                codes_in_group = [p[0] for p in pairs]  # noqa: F841
                 vals_in_group = [p[1] for p in pairs]
                 if len(vals_in_group) < 3:
                     # 行业太小，保持原值

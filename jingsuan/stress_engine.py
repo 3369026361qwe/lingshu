@@ -5,7 +5,7 @@
 补充现有的 4 个硬编码历史情景。
 
 Usage:
-    from jingsuan.stress_engine import StressEngine
+    from jingsuan import StressEngine
     scenarios = StressEngine.factor_shock_scenarios(positions, factor_betas)
 """
 

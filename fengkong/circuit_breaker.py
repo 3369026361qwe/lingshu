@@ -5,7 +5,7 @@ from decimal import Decimal
 from enum import Enum
 
 
-class BreakerState(str, Enum):  # noqa: UP042
+class BreakerState(str, Enum):
     CLOSED = "CLOSED"         # 正常
     OPEN = "OPEN"             # 熔断
     HALF_OPEN = "HALF_OPEN"   # 半开（试探恢复）

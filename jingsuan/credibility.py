@@ -26,7 +26,7 @@ v4.1 增强:
         Z_i(t) = Σ_{s=1}^{t} w_s / (Σ w_s + m/v)
 
 Usage:
-    from jingsuan.credibility import CredibilityEngine, SourceTrackRecord
+    from jingsuan import CredibilityEngine, SourceTrackRecord
     weights = CredibilityEngine.buhlmann_straub(sources)
 """
 

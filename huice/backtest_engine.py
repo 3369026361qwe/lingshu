@@ -1,13 +1,5 @@
-"""事件驱动回测引擎 — 每日推进+调仓+记录+实验追踪 (v4.0 增强版).
-
-v4.0 新增:
-    - 集成 MockBroker + OrderManager (真实交易执行)
-    - 集成 VaRBacktestSuite (Kupiec/Christoffersen/Basel 检验)
-    - 集成 DataSnoopingDefender (DSR/PSR 防数据窥探)
-    - 集成 AttributionEngine (Brinson + 因子 + 风险归因)
-    - PerformanceReport 统一数据类
-"""
-
+"""事件驱动回测引擎 — 每日推进+调仓+记录+实验追踪。"""
+import logging
 import time as _time
 import uuid
 from dataclasses import dataclass
@@ -47,6 +39,8 @@ class PerformanceReport:
 
     # 归因
     attribution: dict | None = None
+
+_log = logging.getLogger(__name__)
 
 
 class BacktestEngine:
@@ -585,8 +579,7 @@ class BacktestEngine:
                         snap_before, snap_after, snap_after - snap_before,
                     )
         except Exception as exc:
-            import logging
-            logging.getLogger(__name__).warning("Persist failed: %s", exc)
+            _log.warning("Persist failed: %s", exc)
 
     # ── 实验对比 ────────────────────────────────────────
 
@@ -921,6 +914,12 @@ class DBBacktestRunner:
                         s.execute(stmt, snapshots[i:i + 2000])
                     s.commit()
 
+                snap_after = s.execute(text('SELECT COUNT(*) FROM portfolio_snapshot')).scalar()
+
+                _log.info('portfolio_snapshot: %s → %s (+%s)',
+                          snap_before, snap_after, snap_after - snap_before)
+
+                # Risk logs
                 if risk_events:
                     existing = set(r[0] for r in s.execute(text(
                         'SELECT DISTINCT timestamp FROM risk_logs'
@@ -959,8 +958,7 @@ class DBBacktestRunner:
                         s.commit()
 
         except Exception as exc:
-            import logging
-            logging.getLogger(__name__).warning("Persist failed: %s", exc)
+            _log.warning("Persist failed: %s", exc)
 
     @staticmethod
     def print_summary(report: dict) -> None:

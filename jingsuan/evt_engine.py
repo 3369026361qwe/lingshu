@@ -19,9 +19,8 @@ v4.1 增强:
     Return Level: z_p = μ - σ/ξ * (1 - (-ln(1-p))^{-ξ})
 
 Usage:
-    from jingsuan.evt_engine import EVTEngine
-    fit = EVTEngine.fit_gpd(returns, method="mle")
-    ci = EVTEngine.profile_likelihood_ci(returns, fit)
+    from jingsuan import EVTEngine
+    fit = EVTEngine.fit_gpd(returns)
     var = EVTEngine.tail_var(fit)
 """
 

@@ -9,7 +9,7 @@ SQLAlchemy ORM 模型集合。
     fengkong_models  — 熔断事件、风控日志
 """
 
-from datetime import datetime, timezone  # noqa: F401 (timezone used in utcnow default; re-exported)
+from datetime import datetime, timezone  # timezone used in utcnow default, re-exported
 
 from sqlalchemy.orm import DeclarativeBase
 

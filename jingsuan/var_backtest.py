@@ -5,7 +5,7 @@ VaR 回测检验套件 — Kupiec / Christoffersen / Acerbi-Szekely / DQ / Berko
 验证 VaR 模型的准确性，多层次检验确保不系统性低估风险。
 
 Usage:
-    from jingsuan.var_backtest import VaRBacktestSuite
+    from jingsuan import VaRBacktestSuite
     result = VaRBacktestSuite.run_all(var_forecasts, actual_losses)
 """
 

@@ -20,7 +20,7 @@ v4.1 增强:
         where ρ = E[Y]/(c·E[T]), F_e = equilibrium distribution of Y
 
 Usage:
-    from jingsuan.ruin_engine import RuinEngine, RuinConfig
+    from jingsuan import RuinEngine, RuinConfig
     f_star = RuinEngine.optimal_position_size(returns, config)
 """
 

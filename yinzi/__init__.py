@@ -22,7 +22,7 @@ from yinzi.alternative_factors import (
     InstitutionalHoldingFactor,
     ShareholderCountFactor,
 )
-from yinzi.engine import FactorEngine  # noqa: F401 (re-exported for public API)
+from yinzi.engine import FactorEngine  # re-exported for public API
 from yinzi.factor_base import FactorBase, FactorCategory
 from yinzi.factor_store import FactorStore
 from yinzi.factor_validator import FactorValidator
@@ -61,6 +61,7 @@ from yinzi.volatility_factors import (
 
 __all__ = [
     "FactorBase", "FactorCategory",
+    "FactorEngine",
     "PEFactor", "PBFactor", "PSFactor", "FCFYieldFactor", "PEGFactor",
     "Momentum1MFactor", "Momentum3MFactor", "Momentum6MFactor", "Momentum12M1MFactor",
     "ROEFactor", "ROAFactor", "GrossMarginFactor", "NetMarginFactor",

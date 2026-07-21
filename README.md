@@ -255,17 +255,17 @@ python -m pytest tests/test_huice/ -v
 
 | 模块 | 测试数 | 状态 |
 |------|:--:|:--:|
-| shujuku | 60 | ✅ |
+| shujuku | 65 | ✅ |
 | shuju | 92 | ✅ |
-| yinzi | 55 | ✅ |
-| zhinengti | 18 | ✅ |
-| tushenjing | 35 | ✅ |
-| jingsuan | — | 🔜 v4.0 |
-| juece | 22 | ✅ |
-| fengkong | 23 | ✅ |
-| zhixing | 11 | ✅ |
-| huice | 14 | ✅ |
-| jiekou | 12 | ✅ |
+| yinzi | 94 | ✅ |
+| zhinengti | 32 | ✅ |
+| tushenjing | 67 | ✅ |
+| jingsuan | — | 🔜 v4.1 |
+| juece | 37 | ✅ |
+| fengkong | 26 | ✅ |
+| zhixing | 20 | ✅ |
+| huice | 20 | ✅ |
+| jiekou | 19 | ✅ |
 | qianduan | 37 | ✅ |
 | **合计** | **480** | |
 

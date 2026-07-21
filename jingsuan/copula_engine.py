@@ -13,7 +13,7 @@ Copula 引擎 — 多资产尾部依赖建模 (v4.2).
     Gaussian      — 无尾依赖 (基准, 线性相关)
 
 Usage:
-    from jingsuan.copula_engine import CopulaEngine, CopulaType
+    from jingsuan import CopulaEngine, CopulaType
     fit = CopulaEngine.fit(returns_matrix)
 """
 
@@ -23,7 +23,9 @@ from dataclasses import dataclass
 from decimal import Decimal
 from enum import Enum
 
-from jingsuan._copula_fit import (
+from shuju.utils import safe_divide
+
+from ._copula_fit import (
     clayton_loglik,
     frank_loglik,
     gumbel_loglik,
@@ -33,7 +35,6 @@ from jingsuan._copula_fit import (
     tcdf,
     theta_from_kendall,
 )
-from shuju.utils import safe_divide
 
 # -- Shared math utilities (also usable by other modules) --
 

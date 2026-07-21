@@ -19,58 +19,26 @@ v4.1 增强 (feat/jingsuan-enhance):
     risk_budget     — 动态风险预算引擎 (unchanged)
 """
 
-__version__ = "4.1.0"
+from .copula_engine import CopulaEngine, CopulaType
+from .credibility import CredibilityEngine, SourceTrackRecord
+from .evt_engine import EVTEngine
+from .risk_budget import RiskBudgetEngine
+from .ruin_engine import RuinConfig, RuinEngine
+from .scenario_gen import ScenarioGenerator
+from .solvency import SCRCalculator
+from .stress_engine import StressEngine
+from .var_backtest import VaRBacktestSuite
 
-# ruff: noqa: F401 — re-exports for public API
-from jingsuan.copula_engine import (
-    CopulaEngine,
-    CopulaFit,
-    CopulaType,
-    MultiCopulaFit,
-)
-from jingsuan.credibility import (
-    CredibilityEngine,
-    CredibilityWeights,
-    HachemeisterResult,
-    HierarchicalCredibilityResult,
-    SourceTrackRecord,
-    TimeDecayConfig,
-)
-from jingsuan.dcc_copula import (
-    DCCCopula,
-    DCCFitResult,
-)
-from jingsuan.evt_engine import (
-    EVTEngine,
-    EVTFitResult,
-    EVTVaRResult,
-    ProfileLikelihoodCI,
-)
-from jingsuan.gev_engine import (
-    GEVEngine,
-    GEVFitResult,
-    GEVReturnLevel,
-)
-from jingsuan.reserving import (
-    LossTriangle,
-    ReservingEngine,
-    ReservingResult,
-)
-from jingsuan.risk_budget import RiskBudgetEngine, RiskLimits
-from jingsuan.ruin_engine import (
-    MultiPeriodRuin,
-    RuinAnalysis,
-    RuinConfig,
-    RuinEngine,
-)
-from jingsuan.scenario_gen import ScenarioGenerator
-from jingsuan.solvency import (
-    SCRCalculator,
-    SCRDecomposition,
-)
-from jingsuan.stress_engine import StressEngine, StressScenario
-from jingsuan.var_backtest import (
-    RollingBacktestResult,
-    VaRBacktestResult,
-    VaRBacktestSuite,
-)
+__all__ = [
+    "CopulaEngine", "CopulaType",
+    "CredibilityEngine", "SourceTrackRecord",
+    "EVTEngine",
+    "RiskBudgetEngine",
+    "RuinEngine", "RuinConfig",
+    "ScenarioGenerator",
+    "SCRCalculator",
+    "StressEngine",
+    "VaRBacktestSuite",
+]
+
+__version__ = "4.0.0"
