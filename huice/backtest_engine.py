@@ -1,10 +1,13 @@
 """事件驱动回测引擎 — 每日推进+调仓+记录+实验追踪。"""
+import logging
 import time as _time
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 
 from huice.performance_metrics import PerformanceMetrics
+
+_log = logging.getLogger(__name__)
 
 
 class BacktestEngine:
@@ -137,8 +140,7 @@ class BacktestEngine:
                     })
                 s.commit()
         except Exception as exc:
-            import logging
-            logging.getLogger(__name__).warning("Persist failed: %s", exc)
+            _log.warning("Persist failed: %s", exc)
 
     # ── 实验对比 ────────────────────────────────────────
 
@@ -433,8 +435,6 @@ class DBBacktestRunner:
 
                 snap_after = s.execute(text('SELECT COUNT(*) FROM portfolio_snapshot')).scalar()
 
-                import logging
-                _log = logging.getLogger(__name__)
                 _log.info('portfolio_snapshot: %s → %s (+%s)',
                           snap_before, snap_after, snap_after - snap_before)
 
@@ -478,8 +478,7 @@ class DBBacktestRunner:
                         s.commit()
 
         except Exception as exc:
-            import logging
-            logging.getLogger(__name__).warning("Persist failed: %s", exc)
+            _log.warning("Persist failed: %s", exc)
 
     # ── 摘要打印 ────────────────────────────────────────
 

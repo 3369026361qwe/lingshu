@@ -129,7 +129,7 @@ class Repository:
     def get_active_stocks(self) -> list[StockInfo]:
         """获取所有活跃股票。"""
         try:
-            stmt = select(StockInfo).where(StockInfo.is_active == True).order_by(StockInfo.code)  # noqa: E712
+            stmt = select(StockInfo).where(StockInfo.is_active.is_(True)).order_by(StockInfo.code)
             return list(self._session.scalars(stmt).all())
         except Exception:
             return []
